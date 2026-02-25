@@ -45,9 +45,9 @@ const Auth = () => {
         email,
         password,
         redirect: false,
-        callbackUrl: "/",
+        callbackUrl: "/profile",
       });
-      router.push("/");
+      router.push("/profile");
     } catch (error) {
       console.log(error);
     }
