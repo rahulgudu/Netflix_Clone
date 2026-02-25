@@ -287,5 +287,27 @@ Real production-ready streaming pipeline
 This is a full cloud-native streaming architecture foundation.
 
 
+
+# APIS from Bunny.net
+## Storage
+```bash
+Storage API Key = 9acce653-98e0-4457-92a5d33d8460-815f-4417
+```
+```bash
+Storage Base URL = https://storage.bunnycdn.com/video-storage-netflix/
+```
+```bash 
+Storage CDN = https://netflix-cdn.b-cdn.net/
+```
+## Stream
+```bash 
+STREAM_LIBRARY_ID = 605726
+```
+```bash 
+STREAM_API_KEY = 3f3f9546-0f29-419c-ae6232acf5e9-624e-45ea
+```
+
+
+
 ---
 
