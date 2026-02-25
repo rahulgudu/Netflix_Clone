@@ -5,7 +5,7 @@ export default function VideoUploader() {
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState("");
 
-  const handleFileChange = async (e: any) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
