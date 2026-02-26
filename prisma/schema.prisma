@@ -20,6 +20,7 @@ model User {
   accounts       Account[]
   favouriteIds   String[]   @db.ObjectId
   profiles       Profiles[]
+  role           String
 }
 
 model Account {
@@ -67,12 +68,20 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+model Region {
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  region   String
+  movieIds Movie[]
+}
+
 model Movie {
-  id           String @id @default(auto()) @map("_id") @db.ObjectId
+  id           String  @id @default(auto()) @map("_id") @db.ObjectId
   title        String
   description  String
   videoUrl     String
   thumbnailUrl String
   genre        String
   duration     String
+  regionId     String? @db.ObjectId
+  region       Region? @relation(fields: [regionId], references: [id])
 }
