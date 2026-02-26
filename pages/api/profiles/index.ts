@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 
 import prismadb from "@/lib/prismadb";
-import serverAuth from "@/lib/serverAuth";
+import serverAuth  from "@/lib/serverAuth";
 
 export default async function handler(
   req: NextApiRequest,
@@ -9,7 +9,8 @@ export default async function handler(
 ) {
   try {
     if (req.method === "GET") {
-      const { currentUser: user } = await serverAuth(req);
+      // const {currentUser: user} = await serverAuth(req)
+      const user = await serverAuth(req, res);
 
       const profiles = await prismadb.profiles.findMany({
         where: {
