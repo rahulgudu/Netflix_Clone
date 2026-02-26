@@ -1,30 +1,55 @@
+"use client";
+
 import useCurrentUser from "@/hooks/useCurrentUser";
+import { useSelectionStore } from "@/zustand/states/useSelectStore";
 import { signOut } from "next-auth/react";
+import { useRouter } from "next/router";
 import React from "react";
 
 interface AccountMenuProps {
   visible?: boolean;
 }
+
 const AccountMenu: React.FC<AccountMenuProps> = ({ visible }) => {
-  const {data} = useCurrentUser();
-  if (!visible) {
-    return null;
-  }
+  const router = useRouter();
+  const { user, profile } = useSelectionStore();
+
+  if (!visible) return null;
+
+  const active = profile || user;
+
   return (
-    <div className="bg-black w-56 absolute top-14 right-0 py-5 flex-col border-2 border-gray-800 flex">
-      <div className="flex flex-col gap-3">
-        <div className="px-3 group/item flex flex-row gap-3 items-center w-full">
-          <img src="/images/default-avatar.png" className="w-8 rounded-md" />
-          <p className="text-white text-sm group-hover/item:underline">
-            {data?.name}
-          </p>
+    <div className="absolute right-0 top-14 w-60 bg-black border border-gray-800 rounded-md shadow-lg z-50">
+      <div className="flex flex-col py-3">
+        {/* Active Profile */}
+        <div className="flex items-center gap-3 px-4 py-2 hover:bg-zinc-800 cursor-pointer transition">
+          <img
+            src={active?.image || "/images/default-avatar.png"}
+            alt={active?.name}
+            className="w-8 h-8 rounded-md object-cover"
+          />
+          <span className="text-sm text-white">
+            {active?.name || "Profile"}
+          </span>
         </div>
-        <hr className="bg-gray-600 border-0 h-px my-4" />
-        <div
+
+        {/* Switch Profiles */}
+        <button
+          onClick={() => router.push("/profile")}
+          className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-zinc-800 hover:text-white transition"
+        >
+          Switch Profiles
+        </button>
+
+        <div className="border-t border-gray-800 my-2" />
+
+        {/* Sign Out */}
+        <button
           onClick={() => signOut()}
-          className="px-3 text-center text-white text-sm hover:underline">
+          className="px-4 py-2 text-sm text-gray-300 hover:bg-zinc-800 hover:text-white transition text-left"
+        >
           Sign out of Netflix
-        </div>
+        </button>
       </div>
     </div>
   );
