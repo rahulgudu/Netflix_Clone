@@ -7,7 +7,7 @@ export const uploadToCloudinary = async (file: File) => {
 
   formData.append(
     "upload_preset",
-    process.env.NEXT_PUBIC_CLOUDINARY_UPLOAD_PRESET || "netflix",
+    process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET as string,
   );
 
   const res = await fetch(

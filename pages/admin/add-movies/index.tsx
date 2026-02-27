@@ -1,51 +1,63 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { AiOutlineArrowLeft } from "react-icons/ai";
 import { useRouter } from "next/router";
 import useGetRegions from "@/hooks/useRegions";
-
-type Region = {
-    id: string;
-    region: string;
-};
+import VideoUploader from "@/components/VideoUploader";
+import ImageUploader from "@/components/ImageUploader";
+import { useMovieStore } from "@/zustand/states/useMovieStore";
+import { useMediaStore } from "@/zustand/states/useMediaStore";
 
 export default function AdminMoviesPage() {
-    const router = useRouter()
+    const router = useRouter();
+    const setMovie = useMovieStore((state: any) => state.setMovie);
+    const { videoId, thumbnailUrl } = useMediaStore()
     const [form, setForm] = useState({
         title: "",
         description: "",
-        videoUrl: "",
+        videoId: "",
         thumbnailUrl: "",
         genre: "",
         duration: "",
         regionId: "",
     });
+    const { movie } = useMovieStore();
+
+    useEffect(() => {
+        if (movie) {
+            setForm((prev) => ({
+                ...prev,
+                title: movie.title || "",
+                description: movie.description || "",
+                videoId: movie.videoId || "",
+                thumbnailUrl: movie.thumbnailUrl || "",
+                genre: movie.genre || "",
+                duration: movie.duration || "",
+                regionId: movie.regionId || "",
+            }))
+        }
+    }, [movie])
 
     const { data: regionsData } = useGetRegions();
-    // console.log(regionsData);
-
-
-
-
-
-    //   useEffect(() => {
-    //     const fetchRegions = async () => {
-    //       const res = await axios.get("/api/admin/regions");
-    //       setRegions(res.data);
-    //     };
-    //     fetchRegions();
-    //   }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        await axios.post("/api/admin/movies", form);
+        console.log("media", videoId, thumbnailUrl);
+
+        const newData = {
+            ...form,
+            videoId: videoId,
+            thumbnailUrl: thumbnailUrl,
+        }
+        setMovie(newData);
         alert("Movie uploaded successfully!");
+
         setForm({
             title: "",
             description: "",
-            videoUrl: "",
+            videoId: "",
             thumbnailUrl: "",
             genre: "",
             duration: "",
@@ -53,119 +65,173 @@ export default function AdminMoviesPage() {
         });
     };
 
+    const handlePublish = async (e: React.FormEvent) => {
+        e.preventDefault();
+        console.log(movie);
+
+    }
+
     return (
-        <div className="min-h-screen bg-black text-white p-10">
-            <div className="flex items-center mb-8 gap-2">
-                <AiOutlineArrowLeft
-                    onClick={() => router.back()}
-                    className="text-white cursor-pointer"
-                    size={20}
-                />
-                <h1 className="text-3xl font-bold">Upload New Movie</h1>
-            </div>
-            <form
-                onSubmit={handleSubmit}
-                className=" bg-[#141414] p-8 rounded-md space-y-6"
-            >
-                <input
-                    type="text"
-                    placeholder="Title"
-                    className="w-full bg-black border border-gray-700 p-3"
-                    value={form.title}
-                    onChange={(e) => setForm({ ...form, title: e.target.value })}
-                    required
-                />
+        <div className="min-h-screen bg-gradient-to-br from-black via-[#0f0f0f] to-black text-white px-6 py-16">
+            <div className="max-w-5xl mx-auto">
 
-                <textarea
-                    placeholder="Description"
-                    className="w-full bg-black border border-gray-700 p-3"
-                    value={form.description}
-                    onChange={(e) => setForm({ ...form, description: e.target.value })}
-                    required
-                />
-
-                <div>
-                    <label className="block mb-2">Video</label>
-                    <input
-                        type="file"
-                        accept="video/*"
-                        onChange={async (e) => {
-                            if (!e.target.files) return;
-                            const url = await handleFileUpload(
-                                e.target.files[0],
-                                "video"
-                            );
-                            setForm({ ...form, videoUrl: url });
-                        }}
-                        className="w-full bg-black border border-gray-700 p-3"
+                {/* Header */}
+                <div className="flex items-center gap-4 mb-12">
+                    <AiOutlineArrowLeft
+                        onClick={() => router.back()}
+                        className="text-gray-400 hover:text-white transition cursor-pointer"
+                        size={22}
                     />
-
-                    {form.videoUrl && (
-                        <p className="mt-3 text-green-500 text-sm">
-                            Video uploaded successfully
+                    <div>
+                        <h1 className="text-4xl font-bold tracking-wide">
+                            Upload New Movie
+                        </h1>
+                        <p className="text-gray-500 text-sm mt-1">
+                            Add content to your streaming platform
                         </p>
-                    )}
+                    </div>
                 </div>
 
-                <div>
-                    <label className="block mb-2">Thumbnail</label>
-                    <input
-                        type="file"
-                        accept="image/*"
-                        onChange={async (e) => {
-                            if (!e.target.files) return;
-                            const url = await handleFileUpload(
-                                e.target.files[0],
-                                "image"
-                            );
-                            setForm({ ...form, thumbnailUrl: url });
-                        }}
-                        className="w-full bg-black border border-gray-700 p-3"
-                    />
-
-                    {form.thumbnailUrl && (
-                        <img
-                            src={form.thumbnailUrl}
-                            className="mt-3 w-48 rounded"
-                        />
-                    )}
-                </div>
-
-                <input
-                    type="text"
-                    placeholder="Genre (Action, Comedy...)"
-                    className="w-full bg-black border border-gray-700 p-3"
-                    value={form.genre}
-                    onChange={(e) => setForm({ ...form, genre: e.target.value })}
-                    required
-                />
-
-                <input
-                    type="text"
-                    placeholder="Duration (2h 15m)"
-                    className="w-full bg-black border border-gray-700 p-3"
-                    value={form.duration}
-                    onChange={(e) => setForm({ ...form, duration: e.target.value })}
-                    required
-                />
-
-                <select
-                    className="w-full bg-black border border-gray-700 p-3"
-                    value={form.regionId}
-                    onChange={(e) => setForm({ ...form, regionId: e.target.value })}
+                {/* Form */}
+                <form
+                    onSubmit={movie ? handlePublish : handleSubmit}
+                    className="bg-[#141414]/80 backdrop-blur-md border border-gray-800 p-10 rounded-2xl space-y-8 shadow-2xl"
                 >
-                    <option value="">Select Region</option>
-                    {regionsData?.map(({ _id, region }: { _id: string, region: string }) => (
-                        <option key={_id} value={_id}>
-                            {region}
-                        </option>
-                    ))}
-                </select>
 
-                <button className="w-full bg-red-600 hover:bg-red-700 py-3 font-semibold">
-                    Upload Movie
-                </button>
-            </form>
+                    {/* Title */}
+                    <div>
+                        <label className="block mb-2 text-sm text-gray-400">
+                            Movie Title
+                        </label>
+                        <input
+                            type="text"
+                            placeholder="Enter movie title"
+                            value={form.title}
+                            onChange={(e) =>
+                                setForm({ ...form, title: e.target.value })
+                            }
+                            required
+                            className="w-full bg-[#1a1a1a] border border-gray-700 focus:border-red-600 focus:ring-1 focus:ring-red-600 outline-none p-3 rounded-md transition"
+                        />
+                    </div>
+
+                    {/* Description */}
+                    <div>
+                        <label className="block mb-2 text-sm text-gray-400">
+                            Description
+                        </label>
+                        <textarea
+                            placeholder="Enter movie description"
+                            value={form.description}
+                            onChange={(e) =>
+                                setForm({ ...form, description: e.target.value })
+                            }
+                            required
+                            rows={4}
+                            className="w-full bg-[#1a1a1a] border border-gray-700 focus:border-red-600 focus:ring-1 focus:ring-red-600 outline-none p-3 rounded-md transition"
+                        />
+                    </div>
+
+                    {/* Video Upload */}
+                    <div>
+                        <label className="block mb-4 text-sm text-gray-400">
+                            Upload Video
+                        </label>
+                        <VideoUploader />
+                    </div>
+
+                    {/* Thumbnail Upload */}
+                    <div>
+                        <label className="block mb-4 text-sm text-gray-400">
+                            Upload Thumbnail
+                        </label>
+                        <ImageUploader />
+                    </div>
+
+                    {/* Two Column Layout */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                        {/* Genre */}
+                        <div>
+                            <label className="block mb-2 text-sm text-gray-400">
+                                Genre
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Action, Comedy..."
+                                value={form.genre}
+                                onChange={(e) =>
+                                    setForm({ ...form, genre: e.target.value })
+                                }
+                                required
+                                className="w-full bg-[#1a1a1a] border border-gray-700 focus:border-red-600 focus:ring-1 focus:ring-red-600 outline-none p-3 rounded-md transition"
+                            />
+                        </div>
+
+                        {/* Duration */}
+                        <div>
+                            <label className="block mb-2 text-sm text-gray-400">
+                                Duration
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="2h 15m"
+                                value={form.duration}
+                                onChange={(e) =>
+                                    setForm({ ...form, duration: e.target.value })
+                                }
+                                required
+                                className="w-full bg-[#1a1a1a] border border-gray-700 focus:border-red-600 focus:ring-1 focus:ring-red-600 outline-none p-3 rounded-md transition"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Region */}
+                    <div>
+                        <label className="block mb-2 text-sm text-gray-400">
+                            Select Region
+                        </label>
+                        <select
+                            value={form.regionId}
+                            onChange={(e) =>
+                                setForm({ ...form, regionId: e.target.value })
+                            }
+                            className="w-full bg-[#1a1a1a] border border-gray-700 focus:border-red-600 focus:ring-1 focus:ring-red-600 outline-none p-3 rounded-md transition"
+                        >
+                            <option value="">Choose region</option>
+                            {regionsData?.map(
+                                ({ _id, region }: { _id: string; region: string }) => (
+                                    <option key={_id} value={_id}>
+                                        {region}
+                                    </option>
+                                )
+                            )}
+                        </select>
+                    </div>
+
+                    {/* Submit */}
+                    {
+                        movie ? (
+
+                            <button
+                                type="submit"
+                                className="w-full bg-red-600 hover:bg-red-700 active:scale-95 transition-all py-3 font-semibold rounded-lg shadow-lg shadow-red-900/30"
+                            >
+                                Publish Movie
+                            </button>
+                        ) : (
+
+                            <button
+                                type="submit"
+                                className="w-full bg-red-600 hover:bg-red-700 active:scale-95 transition-all py-3 font-semibold rounded-lg shadow-lg shadow-red-900/30"
+                            >
+                                Upload Movie
+                            </button>
+
+                        )
+                    }
+                </form>
+            </div>
         </div>
     );
 }
