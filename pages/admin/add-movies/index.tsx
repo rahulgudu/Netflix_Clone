@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { AiOutlineArrowLeft } from "react-icons/ai";
 import { useRouter } from "next/router";
+import useGetRegions from "@/hooks/useRegions";
 
 type Region = {
     id: string;
@@ -12,7 +13,6 @@ type Region = {
 
 export default function AdminMoviesPage() {
     const router = useRouter()
-    const [regions, setRegions] = useState(["Bollywood"]);
     const [form, setForm] = useState({
         title: "",
         description: "",
@@ -22,6 +22,13 @@ export default function AdminMoviesPage() {
         duration: "",
         regionId: "",
     });
+
+    const { data: regionsData } = useGetRegions();
+    // console.log(regionsData);
+
+
+
+
 
     //   useEffect(() => {
     //     const fetchRegions = async () => {
@@ -148,9 +155,9 @@ export default function AdminMoviesPage() {
                     onChange={(e) => setForm({ ...form, regionId: e.target.value })}
                 >
                     <option value="">Select Region</option>
-                    {regions.map((region) => (
-                        <option key={region.id} value={region.id}>
-                            {region.region}
+                    {regionsData?.map(({ _id, region }: { _id: string, region: string }) => (
+                        <option key={_id} value={_id}>
+                            {region}
                         </option>
                     ))}
                 </select>

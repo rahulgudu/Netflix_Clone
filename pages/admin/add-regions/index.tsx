@@ -2,24 +2,36 @@
 
 import { useState } from "react";
 import axios from "axios";
+import useCurrentUser from "@/hooks/useCurrentUser";
+import { AiOutlineArrowLeft } from "react-icons/ai";
+import { useRouter } from "next/router";
 
 export default function AdminRegionsPage() {
+  const router = useRouter();
   const [region, setRegion] = useState("");
+  const { data: currentUser } = useCurrentUser();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await axios.post("/api/admin/regions", { region });
+    await axios.post(`/api/admin/region?email=${currentUser?.email}`, { region });
     alert("Region added successfully!");
     setRegion("");
   };
 
   return (
     <div className="min-h-screen bg-black text-white p-10">
-      <h1 className="text-3xl font-bold mb-8">Add New Region</h1>
+      <div className="flex items-center mb-8 gap-2">
+        <AiOutlineArrowLeft
+          onClick={() => router.back()}
+          className="text-white cursor-pointer"
+          size={20}
+        />
+        <h1 className="text-3xl font-bold">Add new region</h1>
+      </div>
 
       <form
         onSubmit={handleSubmit}
-        className="max-w-xl bg-[#141414] p-8 rounded-md space-y-6"
+        className="bg-[#141414] p-8 rounded-md space-y-6"
       >
         <input
           type="text"
