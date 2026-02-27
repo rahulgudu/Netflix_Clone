@@ -9,8 +9,10 @@ import VideoUploader from "@/components/VideoUploader";
 import ImageUploader from "@/components/ImageUploader";
 import { useMovieStore } from "@/zustand/states/useMovieStore";
 import { useMediaStore } from "@/zustand/states/useMediaStore";
+import useCurrentUser from "@/hooks/useCurrentUser";
 
 export default function AdminMoviesPage() {
+    const { data: currentUser } = useCurrentUser();
     const router = useRouter();
     const setMovie = useMovieStore((state: any) => state.setMovie);
     const { videoId, thumbnailUrl } = useMediaStore()
@@ -24,6 +26,8 @@ export default function AdminMoviesPage() {
         regionId: "",
     });
     const { movie } = useMovieStore();
+    const clearMovie = useMovieStore((state: any) => state.clearMovie);
+    const clearMedia = useMediaStore((state: any) => state.clearMedia);
 
     useEffect(() => {
         if (movie) {
@@ -42,6 +46,7 @@ export default function AdminMoviesPage() {
 
     const { data: regionsData } = useGetRegions();
 
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         console.log("media", videoId, thumbnailUrl);
@@ -53,7 +58,16 @@ export default function AdminMoviesPage() {
         }
         setMovie(newData);
         alert("Movie uploaded successfully!");
+        window.location.reload();
+    };
 
+    const handlePublish = async (e: React.FormEvent) => {
+        e.preventDefault();
+        console.log(movie);
+        const response = await axios.post(`/api/admin/movie?email=${currentUser?.email}`, movie);
+        console.log(response);
+        clearMovie();
+        clearMedia()
         setForm({
             title: "",
             description: "",
@@ -63,12 +77,6 @@ export default function AdminMoviesPage() {
             duration: "",
             regionId: "",
         });
-    };
-
-    const handlePublish = async (e: React.FormEvent) => {
-        e.preventDefault();
-        console.log(movie);
-
     }
 
     return (
@@ -200,8 +208,8 @@ export default function AdminMoviesPage() {
                         >
                             <option value="">Choose region</option>
                             {regionsData?.map(
-                                ({ _id, region }: { _id: string; region: string }) => (
-                                    <option key={_id} value={_id}>
+                                ({ id, region }: { id: string; region: string }) => (
+                                    <option key={id} value={id}>
                                         {region}
                                     </option>
                                 )
