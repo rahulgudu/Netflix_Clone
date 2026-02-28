@@ -6,6 +6,7 @@ type MovieEntity = {
     description: string;
     videoId: string;
     thumbnailUrl: string;
+    trailerId: string;
     genre: string;
     duration: string;
     regionId: string

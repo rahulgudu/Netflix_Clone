@@ -69,8 +69,8 @@ model VerificationToken {
 }
 
 model Region {
-  id       String  @id @default(auto()) @map("_id") @db.ObjectId
-  region   String
+  id     String  @id @default(auto()) @map("_id") @db.ObjectId
+  region String
   movies Movie[]
 }
 
@@ -80,6 +80,7 @@ model Movie {
   description  String
   videoUrl     String
   thumbnailUrl String
+  trailerUrl   String?
   genre        String
   duration     String
   regionId     String? @db.ObjectId
