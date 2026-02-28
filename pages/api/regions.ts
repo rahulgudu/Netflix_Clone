@@ -10,8 +10,8 @@ export default async function handler(
         if (req.method !== "GET") {
             return res.status(405).end();
         }
-        // const { currentUser } = await serverAuth(req);
-        const currentUser = await serverAuth(req, res);
+        const { currentUser } = await serverAuth(req);
+        // const currentUser = await serverAuth(req, res);
 
         const allregions = await prismadb.region.findMany({
         });

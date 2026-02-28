@@ -12,7 +12,7 @@ export default async function handler(
   }
 
   try {
-    await serverAuth(req, res);
+    await serverAuth(req);
 
     const movies = await prismadb.movie.findMany();
 

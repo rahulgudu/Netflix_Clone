@@ -42,7 +42,6 @@ const Movie = () => {
       <MediaPlayer
         title={data.title}
         src={data.videoUrl}
-        autoPlay
         className="h-full w-full"
       >
         <MediaProvider />

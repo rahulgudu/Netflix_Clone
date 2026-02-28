@@ -10,8 +10,8 @@ export default async function handler(
     return res.status(405).end();
   }
   try {
-    // const {currentUser} = await serverAuth(req)
-    const currentUser = await serverAuth(req, res); // for code space
+    const {currentUser} = await serverAuth(req)
+    // const currentUser = await serverAuth(req, res); // for code space
     console.log("user", currentUser);
     
     return res.status(200).json(currentUser);
