@@ -1,11 +1,14 @@
+import AddProfileButton from "@/components/AddProfileButton";
+import ProfileCard from "@/components/ProfileCard";
 import useCurrentUser from "@/hooks/useCurrentUser";
+import useGetProfiles from "@/hooks/useGetProfiles";
 import { NextPageContext } from "next";
 import { getSession } from "next-auth/react";
 import { useRouter } from "next/router";
-
+import { useEffect } from "react";
 export async function getServerSideProps(context: NextPageContext) {
   const session = await getSession(context);
-
+  
   if (!session) {
     return {
       redirect: {
@@ -19,35 +22,45 @@ export async function getServerSideProps(context: NextPageContext) {
     props: {},
   };
 }
-const Profiles = () => {
-  const router = useRouter();
-  const { data: user } = useCurrentUser();
+export default function ProfilePage() {
+  const { data: profiles } = useGetProfiles();
+  const { data: currentUser, isLoading } = useCurrentUser();
+
+  // // for codespaces
+  // const router = useRouter();
+  // useEffect(() => {
+  //   if (!isLoading && !currentUser) {
+  //     router.push("/auth");
+  //   }
+  // }, [currentUser, router, isLoading]);
+
+
   return (
-    <div className="flex items-center h-full justify-center">
-      <div className="flex flex-col">
-        <h1 className="text-3xl md:text-6xl text-center text-white">
-          Who is watching?
-        </h1>
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white">
+      <h1 className="text-3xl md:text-5xl font-semibold mb-12">
+        Who’s watching?
+      </h1>
 
-        <div className="flex items-center justify-center gap-8 mt-10">
-          <div
-            onClick={() => {
-              router.push("/");
-            }}>
-            <div className="group flex-row w-44 mx-auto">
-              <div className="w-44 h-44 rounded-md flex items-center justify-center border-2 border-transparent group-hover:cursor-pointer group-hover:border-white overflow-hidden">
-                <img src="/images/default-avatar.png" alt="avatar" />
-              </div>
-
-              <div className="mt-4 text-gray-400 text-2xl text-center group-hover:text-white">
-                {user?.name}
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="flex flex-wrap justify-center gap-8">
+        {currentUser && (
+          <ProfileCard
+            profile={{
+              id: currentUser.id,
+              name: currentUser.name,
+              image: currentUser.image,
+              isUser: true,
+            }}
+          />
+        )}
+        {profiles?.map((profile: any) => (
+          <ProfileCard key={profile.id} profile={profile} />
+        ))}
+        <AddProfileButton />
       </div>
+
+      <button className="mt-16 px-8 py-2 border border-gray-500 text-gray-400 hover:text-white hover:border-white transition">
+        Manage Profiles
+      </button>
     </div>
   );
-};
-
-export default Profiles;
+}

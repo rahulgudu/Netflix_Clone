@@ -12,12 +12,11 @@ interface AccountMenuProps {
 
 const AccountMenu: React.FC<AccountMenuProps> = ({ visible }) => {
   const router = useRouter();
-  const { user, profile } = useSelectionStore();
+  const { user, profile, clear } = useSelectionStore();
 
   if (!visible) return null;
 
   const active = profile || user;
-
   return (
     <div className="absolute right-0 top-14 w-60 bg-black border border-gray-800 rounded-md shadow-lg z-50">
       <div className="flex flex-col py-3">
@@ -35,9 +34,8 @@ const AccountMenu: React.FC<AccountMenuProps> = ({ visible }) => {
 
         {/* Switch Profiles */}
         <button
-          onClick={() => router.push("/profile")}
-          className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-zinc-800 hover:text-white transition"
-        >
+          onClick={() => router.push("/profiles")}
+          className="text-left px-4 py-2 text-sm text-gray-300 hover:bg-zinc-800 hover:text-white transition">
           Switch Profiles
         </button>
 
@@ -45,9 +43,11 @@ const AccountMenu: React.FC<AccountMenuProps> = ({ visible }) => {
 
         {/* Sign Out */}
         <button
-          onClick={() => signOut()}
-          className="px-4 py-2 text-sm text-gray-300 hover:bg-zinc-800 hover:text-white transition text-left"
-        >
+          onClick={() => {
+            signOut();
+            clear();
+          }}
+          className="px-4 py-2 text-sm text-gray-300 hover:bg-zinc-800 hover:text-white transition text-left">
           Sign out of Netflix
         </button>
       </div>

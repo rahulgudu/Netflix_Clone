@@ -14,37 +14,34 @@ import { useRouter } from "next/router";
 import { useEffect } from "react";
 export async function getServerSideProps(context: NextPageContext) {
   const session = await getSession(context);
-  // if (!session) {
-  //   return {
-  //     redirect: {
-  //       destination: "/auth",
-  //       permanent: false,
-  //     },
-  //   };
-  // }
+  if (!session) {
+    return {
+      redirect: {
+        destination: "/auth",
+        permanent: false,
+      },
+    };
+  }
 
   return {
     props: {},
   };
 }
 export default function Home() {
-  const router = useRouter()
+  // const router = useRouter()
   // for codespaces
-  const { data: currentUser, isLoading } = useCurrentUser();
-  useEffect(() => {
-    if (!isLoading && !currentUser) {
-      router.push("/auth");
-    }
-  }, [isLoading, currentUser, router]);
+  // const { data: currentUser, isLoading } = useCurrentUser();
+  // useEffect(() => {
+  //   if (!isLoading && !currentUser) {
+  //     router.push("/auth");
+  //   }
+  // }, [isLoading, currentUser, router]);
   // --end--
 
 
   const { data: movies = [] } = useMovieList();
   const { data: favMovies = [] } = useFavourites();
   const { isOpen, closeModel } = useModelInfo();
-
-  const { user, profile } = useSelectionStore();
-  console.log("profile",profile);
   
 
   return (

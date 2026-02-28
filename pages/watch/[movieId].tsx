@@ -6,9 +6,31 @@ import "@vidstack/react/player/styles/base.css";
 import "@vidstack/react/player/styles/plyr/theme.css";
 
 import { MediaPlayer, MediaProvider } from "@vidstack/react";
-import { PlyrLayout, plyrLayoutIcons } from "@vidstack/react/player/layouts/plyr";
+import {
+  PlyrLayout,
+  plyrLayoutIcons,
+} from "@vidstack/react/player/layouts/plyr";
 import React from "react";
 import { AiOutlineArrowLeft } from "react-icons/ai";
+import { NextPageContext } from "next";
+import { getSession } from "next-auth/react";
+
+export async function getServerSideProps(context: NextPageContext) {
+  const session = await getSession(context);
+
+  if (!session) {
+    return {
+      redirect: {
+        destination: "/auth",
+        permanent: false,
+      },
+    };
+  }
+
+  return {
+    props: {},
+  };
+}
 
 const Movie = () => {
   const router = useRouter();
@@ -42,13 +64,9 @@ const Movie = () => {
       <MediaPlayer
         title={data.title}
         src={data.videoUrl}
-        className="h-full w-full"
-      >
+        className="h-full w-full">
         <MediaProvider />
-        <PlyrLayout
-          thumbnails={data.thumbnailUrl}
-          icons={plyrLayoutIcons}
-        />
+        <PlyrLayout thumbnails={data.thumbnailUrl} icons={plyrLayoutIcons} />
       </MediaPlayer>
 
       {/* 🎞 Bottom Overlay Info (Netflix Style) */}

@@ -20,7 +20,7 @@ model User {
   accounts       Account[]
   favouriteIds   String[]   @db.ObjectId
   profiles       Profiles[]
-  role           String
+  role           String     @default("user")
 }
 
 model Account {

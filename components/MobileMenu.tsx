@@ -1,3 +1,5 @@
+import useCurrentUser from "@/hooks/useCurrentUser";
+import Link from "next/link";
 import React from "react";
 
 interface MobileMenuProps {
@@ -5,8 +7,14 @@ interface MobileMenuProps {
 }
 const MobileMenu: React.FC<MobileMenuProps> = ({ visible }) => {
   if (!visible) return null;
+  const { data: currentUser } = useCurrentUser();
   return (
     <div className="bg-black w-56 absolute top-8 left-0 py-5 flex flex-col border-2 border-gray-900">
+      {currentUser?.role === "admin" && (
+        <Link href={"/admin"} className="bg-red-600 py-1 px-2 rounded-md mr-4">
+          Admin
+        </Link>
+      )}
       <div className="flex flex-col gap-4">
         <div className="text-white px-3 text-center hover:underline">Home</div>
         <div className="text-white px-3 text-center hover:underline">

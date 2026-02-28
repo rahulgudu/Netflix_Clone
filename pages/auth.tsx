@@ -45,9 +45,9 @@ const Auth = () => {
         email,
         password,
         redirect: false,
-        callbackUrl: "/profile",
+        callbackUrl: "/profiles",
       });
-      router.push("/profile");
+      router.push("/profiles");
     } catch (error) {
       console.log(error);
     }
@@ -117,13 +117,13 @@ const Auth = () => {
               {variant === "login" ? "Login" : "Sign up"}
             </button>
             <div
-              onClick={() => signIn("google", { callbackUrl: "/" })}
+              onClick={() => signIn("google", { callbackUrl: "/profiles" })}
               className="flex flex-row items-center justify-center gap-4 mt-8">
               <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center cursor-pointer hover:opacity-80 transition">
                 <FcGoogle size={30} />
               </div>
               <div
-                onClick={() => signIn("github", { callbackUrl: "/" })}
+                onClick={() => signIn("github", { callbackUrl: "/profiles" })}
                 className="w-10 h-10 bg-white rounded-full flex items-center justify-center cursor-pointer hover:opacity-80 transition">
                 <FaGithub size={30} />
               </div>

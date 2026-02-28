@@ -4,6 +4,8 @@ import MobileMenu from "./MobileMenu";
 import { useCallback, useEffect, useState } from "react";
 import AccountMenu from "./AccountMenu";
 import { useSelectionStore } from "@/zustand/states/useSelectStore";
+import useCurrentUser from "@/hooks/useCurrentUser";
+import Link from "next/link";
 const TOP_OFFSET = 66;
 const Navbar = () => {
   const [showMobile, setShowMobile] = useState(false);
@@ -31,14 +33,14 @@ const Navbar = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-
   const { profile, user } = useSelectionStore();
+  const { data: currentUser } = useCurrentUser();
   return (
-
     <nav className="w-full fixed z-40">
       <div
-        className={`md:px-2 -mt-5 flex flex-row items-center transition duration-500 ${showBackground ? "bg-zinc-900 bg-opacity-90" : ""
-          }`}>
+        className={`md:px-2 -mt-5 flex flex-row items-center transition duration-500 ${
+          showBackground ? "bg-zinc-900 bg-opacity-90" : ""
+        }`}>
         <img className="h-28" src="/images/logo.png" />
 
         <div className="flex-row ml-8 gap-7 hidden lg:flex">
@@ -62,6 +64,13 @@ const Navbar = () => {
         </div>
 
         <div className="flex flex-row ml-auto items-center">
+          {currentUser?.role === "admin" && (
+            <Link
+              href={"/admin"}
+              className="bg-red-600 py-2 px-4 rounded-md mr-4">
+              Admin
+            </Link>
+          )}
           <div className="text-gray-200 hover:text-gray-300 cursor-pointe transition">
             <BsSearch className="mr-12" />
           </div>
@@ -72,7 +81,11 @@ const Navbar = () => {
             onClick={toggleAccountMenu}
             className="flex flex-row items-center gap-2 cursor-pointer relative mr-12">
             <div className="w-6 h-6 lg:w-10 lg:h-10 rounded-md overflow-hidden">
-              <img src={user?.image || profile?.image || "/images/default-avatar.png"} />
+              <img
+                src={
+                  user?.image || profile?.image || "/images/default-avatar.png"
+                }
+              />
             </div>
             <BsChevronDown
               className={`text-white transition ${showAccount && "rotate-180"}`}
