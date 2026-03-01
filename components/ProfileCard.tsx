@@ -3,6 +3,7 @@
 import { useSelectionStore } from "@/zustand/states/useSelectStore";
 import Image from "next/image";
 import { useRouter } from "next/router";
+import { AiOutlineDelete } from "react-icons/ai";
 
 type ProfileProps = {
   profile: {
@@ -12,14 +13,22 @@ type ProfileProps = {
     image?: string;
     isUser?: boolean;
   };
+  isManaging?: boolean;
+  onDelete?: (id: string) => void;
 };
 
-export default function ProfileCard({ profile }: ProfileProps) {
+export default function ProfileCard({
+  profile,
+  isManaging = false,
+  onDelete,
+}: ProfileProps) {
   const setUser = useSelectionStore((state) => state.setUser);
   const setProfile = useSelectionStore((state) => state.setProfile);
   const router = useRouter();
 
   const handleSelect = () => {
+    if (isManaging) return; // prevent navigation in manage mode
+
     if (profile.isUser) {
       setUser({
         id: profile.id,
@@ -34,8 +43,12 @@ export default function ProfileCard({ profile }: ProfileProps) {
       });
     }
 
-    // navigate after selection
     router.push("/");
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation(); // prevent triggering handleSelect
+    onDelete?.(profile.id);
   };
 
   return (
@@ -50,6 +63,15 @@ export default function ProfileCard({ profile }: ProfileProps) {
           fill
           className="object-cover"
         />
+
+        {isManaging && !profile.isUser && (
+          <button
+            onClick={handleDelete}
+            className="absolute top-2 right-2 bg-red-600 p-2 rounded-full hover:bg-red-700 transition"
+          >
+            <AiOutlineDelete size={18} className="text-white" />
+          </button>
+        )}
       </div>
 
       <p className="mt-4 text-gray-400 group-hover:text-white transition">
