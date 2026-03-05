@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import Billboard from "@/components/Billboard";
 import InfoModel from "@/components/InfoModel";
 import MovieList from "@/components/MovieList";
@@ -12,46 +12,57 @@ import { NextPageContext } from "next";
 import { getSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
-export async function getServerSideProps(context: NextPageContext) {
-  const session = await getSession(context);
-  if (!session) {
-    return {
-      redirect: {
-        destination: "/auth",
-        permanent: false,
-      },
-    };
-  }
+// export async function getServerSideProps(context: NextPageContext) {
+//   const session = await getSession(context);
+//   if (!session) {
+//     return {
+//       redirect: {
+//         destination: "/auth",
+//         permanent: false,
+//       },
+//     };
+//   }
 
-  return {
-    props: {},
-  };
-}
+//   return {
+//     props: {},
+//   };
+// }
 export default function Home() {
-  // const router = useRouter()
+  const router = useRouter();
   // for codespaces
-  // const { data: currentUser, isLoading } = useCurrentUser();
-  // useEffect(() => {
-  //   if (!isLoading && !currentUser) {
-  //     router.push("/auth");
-  //   }
-  // }, [isLoading, currentUser, router]);
+  const { data: currentUser, isLoading } = useCurrentUser();
+  useEffect(() => {
+    if (!isLoading && !currentUser) {
+      router.push("/auth");
+    }
+  }, [isLoading, currentUser, router]);
   // --end--
 
-
   const { data: movies = [] } = useMovieList();
-  const { data: favMovies = [] } = useFavourites();
-  const { isOpen, closeModel } = useModelInfo();
+  const { profile } = useSelectionStore();
+
+  const { data: favMovies, isLoading: isFavLoading } = useFavourites({
+    profileId: profile?.id,
+  });
   
+
+  const { isOpen, closeModel } = useModelInfo();
 
   return (
     <>
-      <InfoModel visible={isOpen} onClose={() => { closeModel }} />
+      <InfoModel
+        visible={isOpen}
+        onClose={() => {
+          closeModel;
+        }}
+      />
       <Navbar />
       <Billboard />
       <div className="pb-40">
         <MovieList title="Trending Now" data={movies} />
-        <MovieList title="Favourites Movies" data={favMovies} />
+        {!isFavLoading && (
+          <MovieList title="Favourites Movies" data={favMovies} />
+        )}
       </div>
     </>
   );

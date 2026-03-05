@@ -11,8 +11,8 @@ export default async function handler(
 ) {
   try {
     if (req.method === "GET") {
-      const { currentUser: user } = await serverAuth(req);
-      // const user = await serverAuth(req, res);
+      // const { currentUser: user } = await serverAuth(req);
+      const user = await serverAuth(req, res);
 
       const profiles = await prismadb.profiles.findMany({
         where: {

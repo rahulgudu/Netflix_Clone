@@ -4,25 +4,50 @@ import serverAuth from "@/lib/serverAuth";
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse
+  res: NextApiResponse,
 ) {
   try {
     if (req.method !== "GET") {
-      return res.status(405).end();
+      res.status(405).end();
+      return;
     }
-    const { currentUser } = await serverAuth(req);
-    // const currentUser = await serverAuth(req, res);
 
-    const favouriteMovies = await prismadb.movie.findMany({
+    // const currentUser = await serverAuth(req);
+    const currentUser = await serverAuth(req, res);
+    const { profileId } = req.query;
+
+    let favouriteMovies = [];
+
+    if (profileId && profileId !== "") {
+      const profile = await prismadb.profiles.findUnique({
+        where: {
+          id: profileId as string,
+        },
+      });
+
+      favouriteMovies = await prismadb.movie.findMany({
+        where: {
+          id: {
+            in: profile?.favouriteIds || [],
+          },
+        },
+      });
+
+      res.status(200).json(favouriteMovies);
+      return;
+    }
+
+    favouriteMovies = await prismadb.movie.findMany({
       where: {
         id: {
           in: currentUser?.favouriteIds || [],
         },
       },
     });
-    return res.status(200).json(favouriteMovies);
+
+    res.status(200).json(favouriteMovies);
   } catch (error) {
     console.log(error);
-    return res.status(500).end();
+    res.status(500).end();
   }
 }

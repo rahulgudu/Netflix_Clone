@@ -1,73 +1,83 @@
 import { NextApiRequest, NextApiResponse } from "next";
-
 import { without } from "lodash";
-
 import prismadb from "@/lib/prismadb";
-import serverAuth from "@/lib/serverAuth";
 import { getUser } from "@/lib/getUser";
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    if (req.method === "POST") {
-      const { email } = req.query;
-      // const { currentUser } = await serverAuth(req);
-      const { user: currentUser } = await getUser(email as string);
+    const { email, isProfile, profileId } = req.query;
+    const { movieId } = req.body;
 
-      const { movieId } = req.body;
-      const existingMovie = await prismadb.movie.findUnique({
-        where: {
-          id: movieId,
-        },
+    if (!email || !movieId) {
+      return res.status(400).json({ error: "Missing parameters" });
+    }
+
+    const { user: currentUser } = await getUser(email as string);
+
+    const movie = await prismadb.movie.findUnique({
+      where: { id: movieId },
+    });
+
+    if (!movie) {
+      return res.status(404).json({ error: "Movie not found" });
+    }
+
+    const isProfileMode = isProfile === "true";
+
+    if (isProfileMode && profileId) {
+      const profile = await prismadb.profiles.findUnique({
+        where: { id: profileId as string },
       });
 
-      if (!existingMovie) {
-        throw new Error("Invalid ID");
+      if (!profile) {
+        return res.status(404).json({ error: "Profile not found" });
       }
 
-      const user = await prismadb.user.update({
-        where: {
-          email: currentUser.email || "",
-        },
-        data: {
-          favouriteIds: {
-            push: movieId,
-          },
-        },
+      let favouriteIds = profile.favouriteIds || [];
+
+      if (req.method === "POST") {
+        if (!favouriteIds.includes(movieId)) {
+          favouriteIds = [...favouriteIds, movieId];
+        }
+      }
+
+      if (req.method === "DELETE") {
+        favouriteIds = without(favouriteIds, movieId);
+      }
+
+      const updatedProfile = await prismadb.profiles.update({
+        where: { id: profileId as string },
+        data: { favouriteIds },
       });
 
-      return res.status(200).json(user);
+      return res.status(200).json({
+        favouriteIds: updatedProfile.favouriteIds,
+      });
+    }
+
+    let favouriteIds = currentUser.favouriteIds || [];
+
+    if (req.method === "POST") {
+      if (!favouriteIds.includes(movieId)) {
+        favouriteIds = [...favouriteIds, movieId];
+      }
     }
 
     if (req.method === "DELETE") {
-      const { email } = req.query;
-      const { user: currentUser } = await getUser(email as string);
-      // const { currentUser } = await serverAuth(req);
-      const { movieId } = req.body;
-      const existingMovie = await prismadb.movie.findUnique({
-        where: {
-          id: movieId,
-        },
-      });
-      if (!existingMovie) {
-        throw new Error("Invalid ID");
-      }
-      const updatedFavouriteIds = without(currentUser.favouriteIds, movieId);
-      const updatedUser = await prismadb.user.update({
-        where: {
-          email: currentUser.email || "",
-        },
-        data: {
-          favouriteIds: updatedFavouriteIds,
-        },
-      });
-      return res.status(200).json(updatedUser);
+      favouriteIds = without(favouriteIds, movieId);
     }
-    return res.status(405).end();
+
+    const updatedUser = await prismadb.user.update({
+      where: { email: currentUser.email || "" },
+      data: { favouriteIds },
+    });
+
+    return res.status(200).json({
+      favouriteIds: updatedUser.favouriteIds,
+    });
+
   } catch (error) {
-    console.log(error);
-    return res.status(400).end();
+    console.error(error);
+    return res.status(500).json({ error: "Something went wrong" });
   }
 }
