@@ -12,7 +12,7 @@ export default async function handler(
       return;
     }
 
-    const currentUser = await serverAuth(req);
+    const { currentUser } = await serverAuth(req);
     // const currentUser = await serverAuth(req, res);
     const { profileId } = req.query;
 
