@@ -1,10 +1,13 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import prismadb from "@/lib/prismadb";
+import serverAuth from "@/lib/serverAuth";
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
   try {
+    await serverAuth(req);
+    // await serverAuth(req, res); // for code space
     const { category } = req.query;
 
     if (req.method !== "GET") {
