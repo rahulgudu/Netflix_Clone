@@ -17,7 +17,7 @@ const FavouriteBtn: React.FC<FavouriteBtnProps> = ({ movieId, profileId }) => {
   const { data: currentUser, mutate: mutateUser } = useCurrentUser();
 
   const { data: currentProfile, mutate: mutateProfile } =
-    useCurrentProfile(profileId ? { profileId } : {profileId: null});
+    useCurrentProfile(profileId ? { profileId } : {profileId: undefined});
 
   const isProfileMode = !!profileId;
 
