@@ -12,14 +12,20 @@ export default function VideoUploader({ trailer }: VideoUploaderProps) {
   const setTrailerId = useMediaStore((state: any) => state.setTrailerId);
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState("");
-  const { videoId } = useMediaStore();
+  const [trailerStatus, setTrailerStatus] = useState("");
+  const [trailerProgress, setTrailerProgress] = useState(0);
+  const { videoId, trailerId } = useMediaStore();
 
   useEffect(() => {
     if (videoId) {
       setStatus("Video uploaded successfully! 🎉");
       setProgress(100);
     }
-  }, [videoId]);
+    if(trailerId) {
+      setTrailerStatus("Trailer uploaded successfully! 🎉");
+      setTrailerProgress(100);
+    }
+  }, [videoId, trailerId]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -115,6 +121,20 @@ export default function VideoUploader({ trailer }: VideoUploaderProps) {
           <div className="flex justify-between text-xs mt-2 text-gray-400">
             <span>{progress}%</span>
             <span>{status}</span>
+          </div>
+        </div>
+      )}
+      {trailerProgress > 0 && (
+        <div className="mt-4">
+          <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
+            <div
+              className="bg-red-600 h-2 transition-all duration-300"
+              style={{ width: `${trailerProgress}%` }}
+            />
+          </div>
+          <div className="flex justify-between text-xs mt-2 text-gray-400">
+            <span>{trailerProgress}%</span>
+            <span>{trailerStatus}</span>
           </div>
         </div>
       )}

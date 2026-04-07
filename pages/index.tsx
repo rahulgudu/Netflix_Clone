@@ -12,39 +12,31 @@ import { NextPageContext } from "next";
 import { getSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
-// export async function getServerSideProps(context: NextPageContext) {
-//   const session = await getSession(context);
-//   if (!session) {
-//     return {
-//       redirect: {
-//         destination: "/auth",
-//         permanent: false,
-//       },
-//     };
-//   }
+import MovieRowSkeleton from "@/components/SkelletonWrapper";
+import SkelletonWrapper from "@/components/SkelletonWrapper";
+export async function getServerSideProps(context: NextPageContext) {
+  const session = await getSession(context);
+  if (!session) {
+    return {
+      redirect: {
+        destination: "/auth",
+        permanent: false,
+      },
+    };
+  }
 
-//   return {
-//     props: {},
-//   };
-// }
+  return {
+    props: {},
+  };
+}
 export default function Home() {
-  const router = useRouter();
-  // for codespaces
-  const { data: currentUser, isLoading } = useCurrentUser();
-  useEffect(() => {
-    if (!isLoading && !currentUser) {
-      router.push("/auth");
-    }
-  }, [isLoading, currentUser, router]);
-  // --end--
 
-  const { data: movies = [] } = useMovieList();
+  const { data: movies = [], isLoading } = useMovieList();
   const { profile } = useSelectionStore();
 
   const { data: favMovies, isLoading: isFavLoading } = useFavourites({
     profileId: profile?.id,
   });
-  
 
   const { isOpen, closeModel } = useModelInfo();
 
@@ -59,8 +51,17 @@ export default function Home() {
       <Navbar />
       <Billboard />
       <div className="pb-40">
-        <MovieList title="Trending Now" data={movies} />
-        {!isFavLoading && (
+        {/* Trending Now Logic */}
+        {isLoading ? (
+          <SkelletonWrapper title="Trending Now" />
+        ) : (
+          <MovieList title="Trending Now" data={movies} />
+        )}
+
+        {/* Favourites Logic */}
+        {isFavLoading ? (
+          <SkelletonWrapper title="Favourites Movies" />
+        ) : (
           <MovieList title="Favourites Movies" data={favMovies} />
         )}
       </div>
