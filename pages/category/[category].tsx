@@ -3,15 +3,17 @@ import useSWR from "swr";
 import Navbar from "@/components/Navbar";
 import useCatMovies from "@/hooks/useCatMovies";
 import NoData from "@/components/NoData";
+import SkelletonWrapper from "@/components/SkelletonWrapper";
 
 const CategoryPage = () => {
   const router = useRouter();
   const { category } = router.query;
-  const { data: movies } = useCatMovies(category as string);
+  const { data: movies, isLoading } = useCatMovies(category as string);
   console.log(movies);
-  if (!movies || movies.length === 0)
+  if (!movies || movies.length === 0) {
     return (
       <>
+        <Navbar />
         <NoData
           title="No movies found"
           description="Please check back later."
@@ -20,6 +22,11 @@ const CategoryPage = () => {
         />
       </>
     );
+  }
+
+  if (isLoading) {
+    return <SkelletonWrapper title="Loading Movies" />;
+  }
   return (
     <>
       <Navbar />
