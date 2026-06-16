@@ -20,6 +20,13 @@ const Movie = () => {
   // State to toggle between showing the info/hero vs the actual player
   const [activeSource, setActiveSource] = useState<'movie' | 'trailer' | null>(null); // 'movie' or 'trailer'
 
+  const exitPlayer = async () => {
+    if (document.pictureInPictureElement) {
+      await document.exitPictureInPicture().catch(() => {});
+    }
+    setActiveSource(null);
+  };
+
   if (!data) {
     return (
       <div className="h-screen w-screen bg-black flex items-center justify-center text-white">
@@ -33,7 +40,7 @@ const Movie = () => {
       {/* 🔙 Top Navigation */}
       <nav className="fixed top-0 left-0 w-full z-[100] flex items-center gap-4 px-6 py-6 bg-gradient-to-b from-black/90 to-transparent">
         <AiOutlineArrowLeft
-          onClick={() => (activeSource ? setActiveSource(null) : router.back())}
+          onClick={() => (activeSource ? exitPlayer() : router.back())}
           className="cursor-pointer hover:scale-110 transition-transform"
           size={30}
         />

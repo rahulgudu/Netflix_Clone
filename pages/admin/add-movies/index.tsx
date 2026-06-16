@@ -8,31 +8,30 @@ import useGetRegions from "@/hooks/useRegions";
 import VideoUploader from "@/components/VideoUploader";
 import ImageUploader from "@/components/ImageUploader";
 import { useMovieStore } from "@/zustand/states/useMovieStore";
-import { useMediaStore } from "@/zustand/states/useMediaStore";
 import useCurrentUser from "@/hooks/useCurrentUser";
+
+const emptyForm = {
+  title: "",
+  description: "",
+  videoId: "",
+  thumbnailUrl: "",
+  trailerId: "",
+  genre: "",
+  duration: "",
+  regionId: "",
+};
 
 export default function AdminMoviesPage() {
   const { data: currentUser } = useCurrentUser();
   const router = useRouter();
-  const setMovie = useMovieStore((state: any) => state.setMovie);
-  const { videoId, thumbnailUrl, trailerId } = useMediaStore();
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    videoId: "",
-    thumbnailUrl: "",
-    trailerId: "",
-    genre: "",
-    duration: "",
-    regionId: "",
-  });
-  const { movie, clearMovie } = useMovieStore();
-  const { clearMedia } = useMediaStore();
+  const { movie, setMovie, clearMovie } = useMovieStore();
+  const { data: regionsData } = useGetRegions();
+
+  const [form, setForm] = useState(emptyForm);
 
   useEffect(() => {
     if (movie) {
-      setForm((prev) => ({
-        ...prev,
+      setForm({
         title: movie.title || "",
         description: movie.description || "",
         videoId: movie.videoId || "",
@@ -41,68 +40,36 @@ export default function AdminMoviesPage() {
         genre: movie.genre || "",
         duration: movie.duration || "",
         regionId: movie.regionId || "",
-      }));
+      });
     }
   }, [movie]);
 
-  const { data: regionsData } = useGetRegions();
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Phase 1: save uploads + form data into the store
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("media", videoId, thumbnailUrl);
-
-    const newData = {
-      ...form,
-      videoId: videoId,
-      thumbnailUrl: thumbnailUrl,
-      trailerId: trailerId,
-    };
-    setMovie(newData);
-    alert("Movie uploaded successfully!");
-    window.location.reload();
+    setMovie(form);
+    alert("Movie data saved! Review and click Publish.");
   };
 
+  // Phase 2: send to API
   const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
-    // console.log(movie);
-    const temp = {
-      title: movie?.title,
-      description: movie?.description,
-      videoId: movie?.videoId,
-      thumbnailUrl: movie?.thumbnailUrl,
-      trailerId: trailerId,
-      genre: movie?.genre,
-      duration: movie?.duration,
-      regionId: movie?.regionId,
-    };
-    console.log(temp);
+    if (!movie) return;
 
     const response = await axios.post(
       `/api/admin/movie?email=${currentUser?.email}`,
-      temp,
+      movie,
     );
-    console.log(response);
     if (response.status === 201) {
       alert("Movie published successfully!");
     }
     clearMovie();
-    clearMedia();
-    setForm({
-      title: "",
-      description: "",
-      videoId: "",
-      thumbnailUrl: "",
-      trailerId: "",
-      genre: "",
-      duration: "",
-      regionId: "",
-    });
+    setForm(emptyForm);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-[#0f0f0f] to-black text-white px-6 py-16">
       <div className="max-w-5xl mx-auto">
-        {/* Header */}
         <div className="flex items-center gap-4 mb-12">
           <AiOutlineArrowLeft
             onClick={() => router.back()}
@@ -110,24 +77,17 @@ export default function AdminMoviesPage() {
             size={22}
           />
           <div>
-            <h1 className="text-4xl font-bold tracking-wide">
-              Upload New Movie
-            </h1>
-            <p className="text-gray-500 text-sm mt-1">
-              Add content to your streaming platform
-            </p>
+            <h1 className="text-4xl font-bold tracking-wide">Upload New Movie</h1>
+            <p className="text-gray-500 text-sm mt-1">Add content to your streaming platform</p>
           </div>
         </div>
 
-        {/* Form */}
         <form
           onSubmit={movie ? handlePublish : handleSubmit}
-          className="bg-[#141414]/80 backdrop-blur-md border border-gray-800 p-10 rounded-2xl space-y-8 shadow-2xl">
-          {/* Title */}
+          className="bg-[#141414]/80 backdrop-blur-md border border-gray-800 p-10 rounded-2xl space-y-8 shadow-2xl"
+        >
           <div>
-            <label className="block mb-2 text-sm text-gray-400">
-              Movie Title
-            </label>
+            <label className="block mb-2 text-sm text-gray-400">Movie Title</label>
             <input
               type="text"
               placeholder="Enter movie title"
@@ -138,50 +98,43 @@ export default function AdminMoviesPage() {
             />
           </div>
 
-          {/* Description */}
           <div>
-            <label className="block mb-2 text-sm text-gray-400">
-              Description
-            </label>
+            <label className="block mb-2 text-sm text-gray-400">Description</label>
             <textarea
               placeholder="Enter movie description"
               value={form.description}
-              onChange={(e) =>
-                setForm({ ...form, description: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
               required
               rows={4}
               className="w-full bg-[#1a1a1a] border border-gray-700 focus:border-red-600 focus:ring-1 focus:ring-red-600 outline-none p-3 rounded-md transition"
             />
           </div>
 
-          {/* Video Upload */}
           <div>
-            <label className="block mb-4 text-sm text-gray-400">
-              Upload Video
-            </label>
-            <VideoUploader />
+            <label className="block mb-4 text-sm text-gray-400">Upload Video</label>
+            <VideoUploader onSuccess={(id) => setForm((f) => ({ ...f, videoId: id }))} />
+            {form.videoId && (
+              <p className="text-[10px] text-blue-500 mt-2">Video linked: {form.videoId}</p>
+            )}
           </div>
 
-          {/* Thumbnail Upload */}
           <div>
-            <label className="block mb-4 text-sm text-gray-400">
-              Upload Thumbnail
-            </label>
-            <ImageUploader />
+            <label className="block mb-4 text-sm text-gray-400">Upload Thumbnail</label>
+            <ImageUploader onSuccess={(url) => setForm((f) => ({ ...f, thumbnailUrl: url }))} />
+            {form.thumbnailUrl && (
+              <p className="text-[10px] text-green-500 mt-2">Thumbnail linked ✓</p>
+            )}
           </div>
 
-          {/* Trailer Upload */}
           <div>
-            <label className="block mb-4 text-sm text-gray-400">
-              Upload Trailer
-            </label>
-            <VideoUploader trailer={true} />
+            <label className="block mb-4 text-sm text-gray-400">Upload Trailer</label>
+            <VideoUploader onSuccess={(id) => setForm((f) => ({ ...f, trailerId: id }))} />
+            {form.trailerId && (
+              <p className="text-[10px] text-blue-500 mt-2">Trailer linked: {form.trailerId}</p>
+            )}
           </div>
 
-          {/* Two Column Layout */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Genre */}
             <div>
               <label className="block mb-2 text-sm text-gray-400">Genre</label>
               <input
@@ -193,12 +146,8 @@ export default function AdminMoviesPage() {
                 className="w-full bg-[#1a1a1a] border border-gray-700 focus:border-red-600 focus:ring-1 focus:ring-red-600 outline-none p-3 rounded-md transition"
               />
             </div>
-
-            {/* Duration */}
             <div>
-              <label className="block mb-2 text-sm text-gray-400">
-                Duration
-              </label>
+              <label className="block mb-2 text-sm text-gray-400">Duration</label>
               <input
                 type="text"
                 placeholder="2h 15m"
@@ -210,40 +159,26 @@ export default function AdminMoviesPage() {
             </div>
           </div>
 
-          {/* Region */}
           <div>
-            <label className="block mb-2 text-sm text-gray-400">
-              Select Region
-            </label>
+            <label className="block mb-2 text-sm text-gray-400">Select Region</label>
             <select
               value={form.regionId}
               onChange={(e) => setForm({ ...form, regionId: e.target.value })}
-              className="w-full bg-[#1a1a1a] border border-gray-700 focus:border-red-600 focus:ring-1 focus:ring-red-600 outline-none p-3 rounded-md transition">
+              className="w-full bg-[#1a1a1a] border border-gray-700 focus:border-red-600 focus:ring-1 focus:ring-red-600 outline-none p-3 rounded-md transition"
+            >
               <option value="">Choose region</option>
-              {regionsData?.map(
-                ({ id, region }: { id: string; region: string }) => (
-                  <option key={id} value={id}>
-                    {region}
-                  </option>
-                ),
-              )}
+              {regionsData?.map(({ id, region }: { id: string; region: string }) => (
+                <option key={id} value={id}>{region}</option>
+              ))}
             </select>
           </div>
 
-          {/* Submit */}
-          {movie ? (
-            <button
-              type="submit"
-              className="w-full bg-red-600 hover:bg-red-700 active:scale-95 transition-all py-3 font-semibold rounded-lg shadow-lg shadow-red-900/30">
-              Publish Movie
-            </button>
-          ) : (
-            <button
-              type="submit"
-              className="w-full bg-red-600 hover:bg-red-700 active:scale-95 transition-all py-3 font-semibold rounded-lg shadow-lg shadow-red-900/30">
-              Upload Movie
-            </button>
-          )}
+          <button
+            type="submit"
+            className="w-full bg-red-600 hover:bg-red-700 active:scale-95 transition-all py-3 font-semibold rounded-lg shadow-lg shadow-red-900/30"
+          >
+            {movie ? "Publish Movie" : "Save Movie"}
+          </button>
         </form>
       </div>
     </div>

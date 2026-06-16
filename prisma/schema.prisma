@@ -72,6 +72,7 @@ model Region {
   id     String  @id @default(auto()) @map("_id") @db.ObjectId
   region String
   movies Movie[]
+  series Series[]
 }
 
 model Movie {
@@ -85,4 +86,48 @@ model Movie {
   duration     String
   regionId     String? @db.ObjectId
   region       Region? @relation(fields: [regionId], references: [id])
+}
+
+
+model Series {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  title        String
+  description  String
+  trailerId    String?
+  thumbnailUrl String?
+  genre        String?
+  cast          String[]
+  rating       String?  
+  releaseYear  Int?
+  
+  // Relationships
+  seasons      Season[]
+  regionId     String?  @db.ObjectId
+  region       Region?  @relation(fields: [regionId], references: [id])
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Season {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  number       Int?       
+  title        String?   
+  duration     String?
+  thumbnailUrl String?   
+  
+  seriesId     String    @db.ObjectId
+  series       Series    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  episodes     Episode[]
+}
+
+model Episode {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  number   Int?
+  title    String
+  videoId  String
+  duration String
+
+  seasonId String  @db.ObjectId
+  season   Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
 }
