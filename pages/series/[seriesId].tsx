@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AiOutlineArrowLeft } from "react-icons/ai";
 import { FaPlay } from "react-icons/fa";
 import { MediaPlayer, MediaProvider } from "@vidstack/react";
@@ -12,7 +12,7 @@ import "@vidstack/react/player/styles/plyr/theme.css";
 import useSeries from "@/hooks/useSeries";
 
 interface PlayTarget {
-  signedUrl: string;
+  videoId: string;
   title: string;
 }
 
@@ -23,19 +23,25 @@ export default function SeriesPage() {
 
   const [activeSeason, setActiveSeason] = useState(0);
   const [playing, setPlaying] = useState<PlayTarget | null>(null);
-  const [loadingEpisode, setLoadingEpisode] = useState<string | null>(null);
+  const [streamUrl, setStreamUrl] = useState<string | null>(null);
 
-  const playEpisode = async (videoId: string, title: string) => {
-    setLoadingEpisode(videoId);
-    try {
-      const res = await fetch(`/api/stream/${videoId}`);
-      const { url } = await res.json();
-      setPlaying({ signedUrl: url, title });
-    } catch (err) {
-      console.error("Failed to get stream URL", err);
-    } finally {
-      setLoadingEpisode(null);
+  useEffect(() => {
+    if (!playing) {
+      setStreamUrl(null);
+      return;
     }
+    let cancelled = false;
+    fetch(`/api/stream/${playing.videoId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled) setStreamUrl(data.url);
+      })
+      .catch((err) => console.error("Failed to get stream URL", err));
+    return () => { cancelled = true; };
+  }, [playing]);
+
+  const playEpisode = (videoId: string, title: string) => {
+    setPlaying({ videoId, title });
   };
 
   const exitPlayer = async () => {
@@ -70,20 +76,27 @@ export default function SeriesPage() {
         </span>
       </nav>
 
-      {/* Video Player */}
-      {playing ? (
-        <div className="fixed inset-0 z-50 bg-black">
-          <MediaPlayer
-            autoplay
-            title={playing.title}
-            src={playing.signedUrl}
-            className="h-full w-full"
-          >
-            <MediaProvider />
-            <PlyrLayout icons={plyrLayoutIcons} />
-          </MediaPlayer>
+      {/* Video Player overlay — mounts immediately on tap */}
+      {playing && (
+        <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
+          {streamUrl ? (
+            <MediaPlayer
+              autoplay
+              title={playing.title}
+              src={streamUrl}
+              className="h-full w-full"
+            >
+              <MediaProvider />
+              <PlyrLayout icons={plyrLayoutIcons} />
+            </MediaPlayer>
+          ) : (
+            <div className="animate-pulse text-zinc-500 text-lg">Loading stream...</div>
+          )}
         </div>
-      ) : (
+      )}
+
+      {/* Series content (hidden when player is active) */}
+      {!playing && (
         <>
           {/* Hero */}
           <div className="relative h-[60vh] w-full flex items-end px-4 md:px-16 overflow-hidden">
@@ -146,20 +159,15 @@ export default function SeriesPage() {
             {currentSeason ? (
               <div className="space-y-3">
                 {currentSeason.episodes.map((episode: any) => {
-                  const isLoading = loadingEpisode === episode.videoId;
                   const episodeTitle = `${data.title} — S${currentSeason.number}:E${episode.number} ${episode.title}`;
                   return (
                     <div
                       key={episode.id}
-                      onClick={() => !isLoading && playEpisode(episode.videoId, episodeTitle)}
-                      className="flex items-center gap-4 bg-zinc-800/60 hover:bg-zinc-700/80 rounded-lg p-4 cursor-pointer transition group"
+                      onClick={() => playEpisode(episode.videoId, episodeTitle)}
+                      className="flex items-center gap-4 bg-zinc-800/60 active:bg-zinc-600/80 hover:bg-zinc-700/80 rounded-lg p-4 cursor-pointer transition group"
                     >
-                      <div className="w-10 h-10 rounded-full bg-zinc-700 group-hover:bg-red-600 flex items-center justify-center flex-shrink-0 transition">
-                        {isLoading ? (
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <FaPlay size={14} />
-                        )}
+                      <div className="w-10 h-10 rounded-full bg-zinc-700 group-hover:bg-red-600 group-active:bg-red-600 flex items-center justify-center flex-shrink-0 transition">
+                        <FaPlay size={14} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-gray-400">Episode {episode.number}</p>
