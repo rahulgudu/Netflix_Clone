@@ -50,7 +50,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           ...(title && { title }),
           ...(description && { description }),
           ...(genre && { genre }),
-          ...(trailerId && { trailerId }),
           ...(trailerUrl && { trailerUrl }),
           ...(thumbnailUrl && { thumbnailUrl }),
           ...(regionId && { regionId }),

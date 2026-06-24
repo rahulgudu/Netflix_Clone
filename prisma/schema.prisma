@@ -95,7 +95,6 @@ model Series {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
   title        String
   description  String
-  trailerId    String?
   trailerUrl   String?
   thumbnailUrl String?
   genre        String?
@@ -130,8 +129,7 @@ model Episode {
   id       String @id @default(auto()) @map("_id") @db.ObjectId
   number   Int?
   title    String
-  videoId  String
-  videoUrl String?
+  videoUrl String
   duration String
 
   seasonId String  @db.ObjectId

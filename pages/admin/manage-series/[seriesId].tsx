@@ -41,7 +41,7 @@ export default function EditSeriesPage() {
         description: data.description || "",
         genre: data.genre || "",
         regionId: data.regionId || "",
-        trailerId: data.trailerId || "",
+        trailerId: "",
         thumbnailUrl: data.thumbnailUrl || "",
       });
       // Expand all seasons by default
@@ -217,8 +217,8 @@ export default function EditSeriesPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-zinc-800">
             <div>
               <p className="text-gray-400 font-bold mb-2 uppercase text-xs">Trailer</p>
-              {form.trailerId ? (
-                <p className="text-[10px] text-blue-500 mb-2">Current: {form.trailerId}</p>
+              {data.trailerUrl ? (
+                <p className="text-[10px] text-blue-500 mb-2 truncate max-w-[300px]">Current: {data.trailerUrl}</p>
               ) : null}
               <VideoUploader onSuccess={(id) => setForm({ ...form, trailerId: id })} />
             </div>
@@ -296,7 +296,7 @@ export default function EditSeriesPage() {
                           <p className="text-[10px] text-gray-500">{ep.duration}</p>
                         </div>
                         <p className="text-[10px] text-blue-500 truncate max-w-[120px] hidden md:block">
-                          {ep.videoId}
+                          {ep.videoUrl}
                         </p>
                         <button
                           onClick={() => handleDeleteEpisode(ep.id)}

@@ -31,7 +31,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         data: {
           number: nextNumber,
           title,
-          videoId,
           videoUrl,
           duration,
           seasonId,

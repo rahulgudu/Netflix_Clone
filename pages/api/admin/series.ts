@@ -21,7 +21,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       data: {
         title,
         description,
-        trailerId,
         trailerUrl,
         thumbnailUrl,
         genre,
@@ -38,8 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               create: await Promise.all(season.episodes.map(async (episode: any) => ({
                 number: Number(episode.number),
                 title: episode.title,
-                videoId: episode.videoId,
-                videoUrl: episode.videoId ? await signHlsUrl(episode.videoId) : null,
+                videoUrl: episode.videoId ? await signHlsUrl(episode.videoId) : "",
                 duration: episode.duration,
               }))),
             },
