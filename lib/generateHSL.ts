@@ -3,7 +3,7 @@ export default async function signHlsUrl(videoId: string) {
     const securityKey = process.env.BUNNY_CDN_TOKEN_KEY;
     const hostname = process.env.BUNNY_HOSTNAME;
 
-    const expires = Math.floor(Date.now() / 1000) + 20;
+    const expires = Math.floor(Date.now() / 1000) + 3600;
     const pathAllowed = `/${videoId}/`;
 
     // Sorted params (only token_path in your case)
