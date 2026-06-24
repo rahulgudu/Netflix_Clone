@@ -1,23 +1,27 @@
 import { NextApiRequest } from "next";
-import { getSession } from "next-auth/react";
+import { getToken } from "next-auth/jwt";
 import prismadb from "@/lib/prismadb";
-const serverAuth = async (req: NextApiRequest) => {
-  const session = await getSession({ req });
-  // console.log(session);
-  
 
-  if (!session?.user?.email) {
+const serverAuth = async (req: NextApiRequest) => {
+  const token = await getToken({
+    req,
+    secret: process.env.NEXTAUTH_JWT_SECRET || process.env.NEXTAUTH_SECRET,
+  });
+
+  if (!token?.email) {
     throw new Error("Not signed in");
   }
+
   const currentUser = await prismadb.user.findUnique({
     where: {
-      email: session?.user?.email,
+      email: token.email,
     },
   });
 
   if (!currentUser) {
     throw new Error("Not signed in");
   }
+
   return { currentUser };
 };
 

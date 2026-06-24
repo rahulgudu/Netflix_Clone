@@ -8,20 +8,30 @@ import { useSelectionStore } from "@/zustand/states/useSelectStore";
 interface MovieCardProps {
   data: Record<string, any>;
 }
+const isNewlyAdded = (dateStr?: string) => {
+  if (!dateStr) return false;
+  return (Date.now() - new Date(dateStr).getTime()) / 86400000 <= 7;
+};
+
 const MovieCard: React.FC<MovieCardProps> = ({ data }) => {
   const router = useRouter();
   const { openModel } = useModelInfo();
   const { profile } = useSelectionStore();
   return (
-    <div className="group bg-zinc-900 col-span relative h-[12vw]">
+    <div className="group bg-zinc-900 col-span relative h-24 md:h-[12vw]">
+      {isNewlyAdded(data.createdAt) && (
+        <span className="absolute top-2 left-2 z-20 bg-red-600 text-[10px] font-bold uppercase px-2 py-0.5 rounded">
+          New
+        </span>
+      )}
       <img
-        className="cursor-pointer object-cover transition duration shadow-xl rounded-md group-hover:opacity-90 sm:group-hover:opacity-0 delay-300 w-full h-[12vw]"
+        className="cursor-pointer object-cover transition duration shadow-xl rounded-md group-hover:opacity-90 sm:group-hover:opacity-0 delay-300 w-full h-24 md:h-[12vw]"
         src={data.thumbnailUrl}
         alt="Thumbnail"
       />
       <div className="opacity-0 absolute top-0 transition duration-200 z-10 invisible sm:visible w-full scale-0 group-hover:scale-110 group-hover:-translate-y-[6vw] group-hover:translate-x-[2vw] group-hover:opacity-100">
         <img
-          className="cursor-pointer object-cover transition duration shadow-xl rounded-t-md w-full h-[12vw]"
+          className="cursor-pointer object-cover transition duration shadow-xl rounded-t-md w-full h-24 md:h-[12vw]"
           src={data.thumbnailUrl}
           alt="Thumbnail"
         />

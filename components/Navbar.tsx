@@ -45,7 +45,9 @@ const Navbar = () => {
         {/* LEFT SECTION */}
         <div className="flex items-center gap-6">
           {/* Logo */}
-          <img className="h-8 lg:h-32" src="/images/logo.png" />
+          <Link href="/">
+            <img className="h-8 lg:h-32 cursor-pointer" src="/images/logo.png" alt="Logo" />
+          </Link>
 
           {/* Desktop Menu */}
           <div className="hidden lg:flex items-center gap-7">
@@ -73,38 +75,6 @@ const Navbar = () => {
                 }`}
               />
               <MobileMenu visible={showMobile} />
-            </div>
-
-            <div className="relative group flex items-center gap-1 cursor-pointer">
-              <p className="text-white text-sm">Categories</p>
-              <BsChevronDown className="text-white text-xs" />
-
-              <div className="absolute top-6 left-0 bg-black border border-gray-800 rounded-md py-2 w-40 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition duration-200">
-                <Link
-                  href="/category/drama"
-                  className="block px-4 py-2 text-white hover:bg-gray-800"
-                >
-                  Drama
-                </Link>
-                <Link
-                  href="/category/comedy"
-                  className="block px-4 py-2 text-white hover:bg-gray-800"
-                >
-                  Comedy
-                </Link>
-                <Link
-                  href="/category/romance"
-                  className="block px-4 py-2 text-white hover:bg-gray-800"
-                >
-                  Romance
-                </Link>
-                <Link
-                  href="/category/thriller"
-                  className="block px-4 py-2 text-white hover:bg-gray-800"
-                >
-                  Thriller
-                </Link>
-              </div>
             </div>
           </div>
         </div>

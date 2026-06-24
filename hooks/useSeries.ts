@@ -2,7 +2,7 @@ import useSWR from "swr";
 import fetcher from "@/lib/fetcher";
 
 const useSeries = (seriesId: string) => {
-  const { data, error, isLoading } = useSWR(
+  const { data, error, isLoading, mutate } = useSWR(
     seriesId ? `/api/series/${seriesId}` : null,
     fetcher,
     {
@@ -12,7 +12,7 @@ const useSeries = (seriesId: string) => {
     }
   );
 
-  return { data, error, isLoading };
+  return { data, error, isLoading, mutate };
 };
 
 export default useSeries;

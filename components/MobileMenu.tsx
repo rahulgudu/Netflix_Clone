@@ -9,20 +9,35 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ visible }) => {
   if (!visible) return null;
   const { data: currentUser } = useCurrentUser();
   return (
-    <div className="bg-black w-56 absolute top-8 left-0 py-5 flex flex-col border-2 border-gray-900">
+    <div className="bg-black w-56 absolute top-8 left-0 py-5 flex flex-col border-2 border-gray-900 z-50">
       {currentUser?.role === "admin" && (
-        <Link href={"/admin"} className="bg-red-600 py-1 px-2 rounded-md text-center text-white mb-4">
-          Admin
-        </Link>
+        <div className="px-3 mb-4">
+          <Link href={"/admin"} className="block bg-red-600 py-2 rounded-md text-center text-white font-semibold hover:bg-red-700 transition">
+            Admin
+          </Link>
+        </div>
       )}
       <div className="flex flex-col gap-4">
-        <div className="text-white px-3 text-center hover:underline">Home</div>
-        <div className="text-white px-3 text-center hover:underline">
-          Series
-        </div>
-        <div className="text-white px-3 text-center hover:underline">Films</div>
-        <div className="text-white px-3 text-center hover:underline">
-          Movies
+        <Link href="/" className="text-white px-3 text-center hover:underline block">
+          Home
+        </Link>
+        
+        <div className="border-t border-zinc-800 my-2 pt-2">
+          <p className="text-zinc-500 text-xs uppercase px-3 mb-2 font-semibold text-center">Categories</p>
+          <div className="flex flex-col gap-3">
+            <Link href="/category/drama" className="text-white px-3 text-center hover:underline block">
+              Drama
+            </Link>
+            <Link href="/category/comedy" className="text-white px-3 text-center hover:underline block">
+              Comedy
+            </Link>
+            <Link href="/category/romance" className="text-white px-3 text-center hover:underline block">
+              Romance
+            </Link>
+            <Link href="/category/thriller" className="text-white px-3 text-center hover:underline block">
+              Thriller
+            </Link>
+          </div>
         </div>
       </div>
     </div>

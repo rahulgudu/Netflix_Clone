@@ -76,7 +76,7 @@ model Region {
 }
 
 model Movie {
-  id           String  @id @default(auto()) @map("_id") @db.ObjectId
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
   title        String
   description  String
   videoUrl     String
@@ -84,8 +84,10 @@ model Movie {
   trailerUrl   String?
   genre        String
   duration     String
-  regionId     String? @db.ObjectId
-  region       Region? @relation(fields: [regionId], references: [id])
+  regionId     String?  @db.ObjectId
+  region       Region?  @relation(fields: [regionId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 
@@ -104,6 +106,8 @@ model Series {
   seasons      Season[]
   regionId     String?  @db.ObjectId
   region       Region?  @relation(fields: [regionId], references: [id])
+
+  lastModifiedNote String?
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
