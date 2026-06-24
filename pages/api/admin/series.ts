@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import prismadb from "@/lib/prismadb";
+import signHlsUrl from "@/lib/generateHSL";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -14,11 +15,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ message: "All fields are required" });
     }
 
+    const trailerUrl = trailerId ? await signHlsUrl(trailerId) : null;
+
     const series = await prismadb.series.create({
       data: {
         title,
         description,
         trailerId,
+        trailerUrl,
         thumbnailUrl,
         genre,
         cast: cast ?? [],
@@ -26,19 +30,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         releaseYear: releaseYear ? Number(releaseYear) : undefined,
         regionId,
         seasons: {
-          create: seasons.map((season: any) => ({
+          create: await Promise.all(seasons.map(async (season: any) => ({
             number: Number(season.number),
             title: season.title,
             thumbnailUrl: season.thumbnailUrl,
             episodes: {
-              create: season.episodes.map((episode: any) => ({
+              create: await Promise.all(season.episodes.map(async (episode: any) => ({
                 number: Number(episode.number),
                 title: episode.title,
                 videoId: episode.videoId,
+                videoUrl: episode.videoId ? await signHlsUrl(episode.videoId) : null,
                 duration: episode.duration,
-              })),
+              }))),
             },
-          })),
+          }))),
         },
       },
       include: {

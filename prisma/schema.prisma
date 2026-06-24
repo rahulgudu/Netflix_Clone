@@ -96,6 +96,7 @@ model Series {
   title        String
   description  String
   trailerId    String?
+  trailerUrl   String?
   thumbnailUrl String?
   genre        String?
   cast          String[]
@@ -130,6 +131,7 @@ model Episode {
   number   Int?
   title    String
   videoId  String
+  videoUrl String?
   duration String
 
   seasonId String  @db.ObjectId

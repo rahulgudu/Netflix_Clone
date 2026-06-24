@@ -12,7 +12,8 @@ import "@vidstack/react/player/styles/plyr/theme.css";
 import useSeries from "@/hooks/useSeries";
 
 interface PlayTarget {
-  videoId: string;
+  videoId?: string;
+  videoUrl?: string;
   title: string;
 }
 
@@ -30,6 +31,10 @@ export default function SeriesPage() {
       setStreamUrl(null);
       return;
     }
+    if (playing.videoUrl) {
+      setStreamUrl(playing.videoUrl);
+      return;
+    }
     let cancelled = false;
     fetch(`/api/stream/${playing.videoId}`)
       .then((res) => res.json())
@@ -40,8 +45,8 @@ export default function SeriesPage() {
     return () => { cancelled = true; };
   }, [playing]);
 
-  const playEpisode = (videoId: string, title: string) => {
-    setPlaying({ videoId, title });
+  const playEpisode = (videoId: string, videoUrl: string | null, title: string) => {
+    setPlaying({ videoId, videoUrl: videoUrl || undefined, title });
   };
 
   const exitPlayer = async () => {
@@ -161,22 +166,22 @@ export default function SeriesPage() {
                 {currentSeason.episodes.map((episode: any) => {
                   const episodeTitle = `${data.title} — S${currentSeason.number}:E${episode.number} ${episode.title}`;
                   return (
-                    <div
-                      key={episode.id}
-                      onClick={() => playEpisode(episode.videoId, episodeTitle)}
-                      className="flex items-center gap-4 bg-zinc-800/60 active:bg-zinc-600/80 hover:bg-zinc-700/80 rounded-lg p-4 cursor-pointer transition group"
-                    >
-                      <div className="w-10 h-10 rounded-full bg-zinc-700 group-hover:bg-red-600 group-active:bg-red-600 flex items-center justify-center flex-shrink-0 transition">
-                        <FaPlay size={14} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-gray-400">Episode {episode.number}</p>
-                        <p className="font-semibold truncate">{episode.title}</p>
-                      </div>
-                      {episode.duration && (
-                        <span className="text-gray-500 text-sm flex-shrink-0">{episode.duration}</span>
-                      )}
-                    </div>
+                     <div
+                       key={episode.id}
+                       onClick={() => playEpisode(episode.videoId, episode.videoUrl, episodeTitle)}
+                       className="flex items-center gap-4 bg-zinc-800/60 active:bg-zinc-600/80 hover:bg-zinc-700/80 rounded-lg p-4 cursor-pointer transition group"
+                     >
+                       <div className="w-10 h-10 rounded-full bg-zinc-700 group-hover:bg-red-600 group-active:bg-red-600 flex items-center justify-center flex-shrink-0 transition">
+                         <FaPlay size={14} />
+                       </div>
+                       <div className="flex-1 min-w-0">
+                         <p className="text-sm text-gray-400">Episode {episode.number}</p>
+                         <p className="font-semibold truncate">{episode.title}</p>
+                       </div>
+                       {episode.duration && (
+                         <span className="text-gray-500 text-sm flex-shrink-0">{episode.duration}</span>
+                       )}
+                     </div>
                   );
                 })}
               </div>

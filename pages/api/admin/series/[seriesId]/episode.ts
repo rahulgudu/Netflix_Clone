@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import prismadb from "@/lib/prismadb";
 import serverAuth from "@/lib/serverAuth";
+import signHlsUrl from "@/lib/generateHSL";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { currentUser } = await serverAuth(req);
@@ -24,11 +25,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const existingEpisodes = await prismadb.episode.findMany({ where: { seasonId } });
       const nextNumber = existingEpisodes.length + 1;
 
+      const videoUrl = await signHlsUrl(videoId);
+
       const episode = await prismadb.episode.create({
         data: {
           number: nextNumber,
           title,
           videoId,
+          videoUrl,
           duration,
           seasonId,
         },

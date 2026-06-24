@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import prismadb from "@/lib/prismadb";
 import serverAuth from "@/lib/serverAuth";
+import signHlsUrl from "@/lib/generateHSL";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { currentUser } = await serverAuth(req);
@@ -41,6 +42,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       const { title, description, genre, trailerId, thumbnailUrl, regionId, lastModifiedNote } = req.body;
 
+      const trailerUrl = trailerId ? await signHlsUrl(trailerId) : undefined;
+
       const series = await prismadb.series.update({
         where: { id: seriesId },
         data: {
@@ -48,6 +51,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           ...(description && { description }),
           ...(genre && { genre }),
           ...(trailerId && { trailerId }),
+          ...(trailerUrl && { trailerUrl }),
           ...(thumbnailUrl && { thumbnailUrl }),
           ...(regionId && { regionId }),
           ...(lastModifiedNote !== undefined && { lastModifiedNote }),
