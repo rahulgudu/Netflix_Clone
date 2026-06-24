@@ -1,6 +1,7 @@
 "use client";
 
 import useMovie from "@/hooks/useMovie";
+import useMovieList from "@/hooks/useMovieList";
 import { useRouter } from "next/router";
 import "@vidstack/react/player/styles/base.css";
 import "@vidstack/react/player/styles/plyr/theme.css";
@@ -8,26 +9,68 @@ import "@vidstack/react/player/styles/plyr/theme.css";
 import { MediaPlayer, MediaProvider, type MediaPlayerInstance } from "@vidstack/react";
 import { PlyrLayout, plyrLayoutIcons } from "@vidstack/react/player/layouts/plyr";
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { AiOutlineArrowLeft } from "react-icons/ai";
-import { FaPlay, FaFilm } from "react-icons/fa";
+import { FaPlay, FaFilm, FaHome } from "react-icons/fa";
 import { useSelectionStore } from "@/zustand/states/useSelectStore";
 import axios from "axios";
+
+// ── SVG countdown ring ─────────────────────────────────────────────────────
+const RADIUS = 22;
+const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+
+function CountdownRing({ seconds, total = 5 }: { seconds: number; total?: number }) {
+  const progress = seconds / total;
+  const dash = CIRCUMFERENCE * progress;
+  return (
+    <svg width="56" height="56" className="rotate-[-90deg]">
+      <circle cx="28" cy="28" r={RADIUS} fill="none" stroke="#3f3f46" strokeWidth="4" />
+      <circle
+        cx="28" cy="28" r={RADIUS} fill="none"
+        stroke="#e50914" strokeWidth="4"
+        strokeDasharray={`${dash} ${CIRCUMFERENCE}`}
+        style={{ transition: "stroke-dasharray 1s linear" }}
+      />
+      <text
+        x="28" y="28" textAnchor="middle" dominantBaseline="central"
+        fill="white" fontSize="14" fontWeight="700"
+        style={{ transform: "rotate(90deg)", transformOrigin: "28px 28px" }}
+      >
+        {seconds}
+      </text>
+    </svg>
+  );
+}
 
 const Movie = () => {
   const router = useRouter();
   const { movieId } = router.query;
   const { data } = useMovie(movieId as string);
-  const { profile, user } = useSelectionStore();
+  const { data: allMovies = [] } = useMovieList();
+  const { profile } = useSelectionStore();
 
   const [activeSource, setActiveSource] = useState<"movie" | "trailer" | null>(null);
   const [resumeTime, setResumeTime] = useState<number>(0);
+
+  // ── Next movie autoplay state ─────────────────────────────────────────────
+  const [showNextMovie, setShowNextMovie] = useState(false);
+  const [countdown, setCountdown] = useState(5);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const nextMovieTriggeredRef = useRef(false);
 
   const playerRef = useRef<MediaPlayerInstance | null>(null);
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasSeekedRef = useRef(false);
 
-  // ── Fetch saved progress on mount ────────────────────────────────────────
+  // Pick a random different movie as suggestion
+  const suggestedMovie = useMemo(() => {
+    if (!allMovies.length || !movieId) return null;
+    const others = allMovies.filter((m: any) => m.id !== movieId);
+    if (!others.length) return null;
+    return others[Math.floor(Math.random() * others.length)];
+  }, [allMovies, movieId]);
+
+  // ── Fetch saved progress ──────────────────────────────────────────────────
   useEffect(() => {
     if (!movieId || typeof movieId !== "string") return;
     const profileId = profile?.id;
@@ -39,20 +82,17 @@ const Movie = () => {
       .then((r) => r.json())
       .then((items: any[]) => {
         const saved = items?.find((i) => i.movieId === movieId);
-        if (saved && saved.currentTime > 5) {
-          setResumeTime(saved.currentTime);
-        }
+        if (saved && saved.currentTime > 5) setResumeTime(saved.currentTime);
       })
       .catch(() => {});
   }, [movieId, profile?.id]);
 
-  // ── Save progress every 5 seconds while playing ──────────────────────────
+  // ── Progress saver ────────────────────────────────────────────────────────
   const saveProgress = useCallback(async () => {
     if (!playerRef.current || !movieId || !data) return;
     const currentTime = playerRef.current.currentTime;
     const duration = playerRef.current.duration;
     if (!currentTime || !duration || currentTime < 3) return;
-
     try {
       await axios.post("/api/watch-progress", {
         profileId: profile?.id || null,
@@ -66,17 +106,17 @@ const Movie = () => {
     } catch {}
   }, [movieId, data, profile?.id]);
 
-  // ── Start/stop reporting interval when player is visible ─────────────────
   useEffect(() => {
     if (activeSource === "movie") {
       hasSeekedRef.current = false;
+      nextMovieTriggeredRef.current = false;
+      setShowNextMovie(false);
       progressIntervalRef.current = setInterval(saveProgress, 5000);
     } else {
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
-      // Save one final snapshot on exit
       if (activeSource === null && movieId) saveProgress();
     }
     return () => {
@@ -85,7 +125,7 @@ const Movie = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSource]);
 
-  // ── Seek to saved position once the player is ready ──────────────────────
+  // ── Seek to saved position ────────────────────────────────────────────────
   const handleCanPlay = useCallback(() => {
     if (hasSeekedRef.current) return;
     if (resumeTime > 5 && playerRef.current) {
@@ -94,12 +134,68 @@ const Movie = () => {
     }
   }, [resumeTime]);
 
+  // ── Time update: trigger "next movie" overlay at last 60 seconds ──────────
+  const handleTimeUpdate = useCallback(() => {
+    if (!playerRef.current || nextMovieTriggeredRef.current) return;
+    const currentTime = playerRef.current.currentTime;
+    const duration = playerRef.current.duration;
+    if (!duration || duration < 30) return;
+
+    const remaining = duration - currentTime;
+    if (remaining <= 60 && remaining > 0 && suggestedMovie) {
+      nextMovieTriggeredRef.current = true;
+      setCountdown(5);
+      setShowNextMovie(true);
+    }
+  }, [suggestedMovie]);
+
+  // ── Countdown auto-redirect ───────────────────────────────────────────────
+  useEffect(() => {
+    if (!showNextMovie) {
+      if (countdownRef.current) clearInterval(countdownRef.current);
+      return;
+    }
+
+    countdownRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownRef.current!);
+          if (suggestedMovie) {
+            router.push(`/watch/${suggestedMovie.id}`);
+          } else {
+            router.push("/");
+          }
+          return 5;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    };
+  }, [showNextMovie, suggestedMovie, router]);
+
   const exitPlayer = async () => {
     await saveProgress();
+    setShowNextMovie(false);
+    if (countdownRef.current) clearInterval(countdownRef.current);
     if (document.pictureInPictureElement) {
       await document.exitPictureInPicture().catch(() => {});
     }
     setActiveSource(null);
+  };
+
+  const handlePlayNextNow = () => {
+    if (!suggestedMovie) return;
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    setShowNextMovie(false);
+    router.push(`/watch/${suggestedMovie.id}`);
+  };
+
+  const handleCancelNext = () => {
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    setShowNextMovie(false);
   };
 
   if (!data) {
@@ -112,7 +208,7 @@ const Movie = () => {
 
   return (
     <div className="min-h-screen w-full bg-[#141414] text-white font-sans">
-      {/* 🔙 Top Navigation */}
+      {/* Top Navigation */}
       <nav className="fixed top-0 left-0 w-full z-[100] flex items-center gap-4 px-6 py-6 bg-gradient-to-b from-black/90 to-transparent">
         <AiOutlineArrowLeft
           onClick={() => (activeSource ? exitPlayer() : router.back())}
@@ -124,7 +220,7 @@ const Movie = () => {
         </span>
       </nav>
 
-      {/* 🎬 Media Player Overlay */}
+      {/* Media Player */}
       {activeSource ? (
         <div className="fixed inset-0 z-50 bg-black">
           <MediaPlayer
@@ -134,15 +230,59 @@ const Movie = () => {
             src={activeSource === "movie" ? data.videoUrl : data.trailerUrl}
             className="h-full w-full"
             onCanPlay={activeSource === "movie" ? handleCanPlay : undefined}
+            onTimeUpdate={activeSource === "movie" ? handleTimeUpdate : undefined}
           >
             <MediaProvider />
             <PlyrLayout icons={plyrLayoutIcons} />
           </MediaPlayer>
+
+          {/* ── Next Movie Overlay (bottom-right, Netflix-style) ── */}
+          {showNextMovie && suggestedMovie && (
+            <div className="absolute bottom-20 right-6 z-[200] flex flex-col items-end gap-3 animate-in slide-in-from-bottom-4 duration-300">
+              <div className="bg-zinc-900/95 backdrop-blur-sm border border-zinc-700 rounded-xl overflow-hidden w-72 shadow-2xl">
+                {/* Thumbnail */}
+                <div className="relative w-full h-28">
+                  <img
+                    src={suggestedMovie.thumbnailUrl}
+                    alt={suggestedMovie.title}
+                    className="w-full h-full object-cover opacity-70"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 to-transparent" />
+                  <div className="absolute bottom-2 left-3 text-[10px] uppercase tracking-widest text-gray-400 font-bold">
+                    Up Next
+                  </div>
+                </div>
+
+                <div className="p-4">
+                  <p className="text-white font-semibold text-sm leading-snug line-clamp-2 mb-4">
+                    {suggestedMovie.title}
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handlePlayNextNow}
+                      className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-md font-bold text-sm hover:bg-white/90 transition flex-1 justify-center"
+                    >
+                      <FaPlay size={12} />
+                      Play Now
+                    </button>
+                    <div className="flex-shrink-0">
+                      <CountdownRing seconds={countdown} total={5} />
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleCancelNext}
+                    className="mt-2 w-full text-center text-xs text-gray-500 hover:text-gray-300 transition py-1"
+                  >
+                    Cancel Autoplay
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
-        /* 🍿 Hero Info Section */
+        /* Hero Info Section */
         <div className="relative h-[80vh] w-full flex items-center px-4 md:px-16 overflow-hidden">
-          {/* Background */}
           <div className="absolute inset-0 z-0">
             <img
               src={data.thumbnailUrl}
@@ -153,13 +293,9 @@ const Movie = () => {
             <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-transparent to-transparent" />
           </div>
 
-          {/* Content */}
           <div className="relative z-10 max-w-2xl mt-20">
-            <h1 className="text-4xl md:text-7xl font-extrabold mb-4 drop-shadow-xl">
-              {data.title}
-            </h1>
+            <h1 className="text-4xl md:text-7xl font-extrabold mb-4 drop-shadow-xl">{data.title}</h1>
 
-            {/* Resume badge */}
             {resumeTime > 5 && (
               <div className="mb-4 flex items-center gap-2 text-sm text-yellow-400 font-medium">
                 <FaPlay size={10} />
@@ -173,11 +309,8 @@ const Movie = () => {
               <span className="border border-gray-500 px-2 py-0.5 text-[10px] rounded-sm">4K Ultra HD</span>
             </div>
 
-            <p className="text-gray-200 text-base md:text-xl leading-snug mb-8 drop-shadow-md">
-              {data.description}
-            </p>
+            <p className="text-gray-200 text-base md:text-xl leading-snug mb-8 drop-shadow-md">{data.description}</p>
 
-            {/* Action Buttons */}
             <div className="flex flex-wrap gap-4">
               <button
                 onClick={() => setActiveSource("movie")}
