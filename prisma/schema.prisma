@@ -132,6 +132,42 @@ model Episode {
   videoUrl String
   duration String
 
-  seasonId String  @db.ObjectId
-  season   Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  seasonId      String          @db.ObjectId
+  season        Season          @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  watchProgress WatchProgress[]
+}
+
+model WatchProgress {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+
+  // Who is watching — one of these will be set
+  profileId   String?  @db.ObjectId
+  userId      String?  @db.ObjectId
+
+  // What is being watched
+  contentType String            // "movie" | "episode"
+  movieId     String?  @db.ObjectId
+  episodeId   String?  @db.ObjectId
+
+  // Series context (to resume the correct episode on series page)
+  seriesId    String?  @db.ObjectId
+  seasonId    String?  @db.ObjectId
+
+  // Snapshot info stored for display (avoids joins on GET)
+  title           String?
+  thumbnailUrl    String?
+  episodeLabel    String?   // e.g. "S1:E3 - Episode Title"
+
+  // Progress
+  currentTime Float    @default(0)   // seconds elapsed
+  duration    Float    @default(0)   // total duration in seconds
+  percentage  Float    @default(0)   // 0–100
+
+  episode     Episode? @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  @@unique([profileId, movieId])
+  @@unique([userId, movieId])
 }

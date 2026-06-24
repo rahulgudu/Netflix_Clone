@@ -1,34 +1,124 @@
 "use client";
 
 import { useRouter } from "next/router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { AiOutlineArrowLeft } from "react-icons/ai";
 import { FaPlay } from "react-icons/fa";
-import { MediaPlayer, MediaProvider } from "@vidstack/react";
+import { MediaPlayer, MediaProvider, type MediaPlayerInstance } from "@vidstack/react";
 import { PlyrLayout, plyrLayoutIcons } from "@vidstack/react/player/layouts/plyr";
 import "@vidstack/react/player/styles/base.css";
 import "@vidstack/react/player/styles/plyr/theme.css";
+import axios from "axios";
 
 import useSeries from "@/hooks/useSeries";
+import { useSelectionStore } from "@/zustand/states/useSelectStore";
 
 interface PlayTarget {
   videoUrl: string;
   title: string;
+  episodeId: string;
+  seasonId: string;
+  episodeLabel: string;
+  savedTime?: number;
 }
 
 export default function SeriesPage() {
   const router = useRouter();
   const { seriesId } = router.query;
   const { data } = useSeries(seriesId as string);
+  const { profile } = useSelectionStore();
 
   const [activeSeason, setActiveSeason] = useState(0);
   const [playing, setPlaying] = useState<PlayTarget | null>(null);
 
-  const playEpisode = (videoUrl: string, title: string) => {
-    setPlaying({ videoUrl, title });
+  // Map of episodeId → saved currentTime fetched from API
+  const [savedTimes, setSavedTimes] = useState<Record<string, number>>({});
+
+  const playerRef = useRef<MediaPlayerInstance | null>(null);
+  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hasSeekedRef = useRef(false);
+
+  // ── Fetch saved progress for this series ─────────────────────────────────
+  useEffect(() => {
+    if (!seriesId) return;
+    const profileId = profile?.id;
+    const url = profileId
+      ? `/api/watch-progress?profileId=${profileId}`
+      : `/api/watch-progress`;
+
+    fetch(url)
+      .then((r) => r.json())
+      .then((items: any[]) => {
+        if (!Array.isArray(items)) return;
+        const map: Record<string, number> = {};
+        items.forEach((item) => {
+          if (item.seriesId === seriesId && item.episodeId && item.currentTime > 5) {
+            map[item.episodeId] = item.currentTime;
+          }
+        });
+        setSavedTimes(map);
+      })
+      .catch(() => {});
+  }, [seriesId, profile?.id]);
+
+  // ── Progress reporter ─────────────────────────────────────────────────────
+  const saveProgress = useCallback(async () => {
+    if (!playerRef.current || !playing || !data) return;
+    const currentTime = playerRef.current.currentTime;
+    const duration = playerRef.current.duration;
+    if (!currentTime || !duration || currentTime < 3) return;
+
+    try {
+      await axios.post("/api/watch-progress", {
+        profileId: profile?.id || null,
+        contentType: "episode",
+        episodeId: playing.episodeId,
+        seriesId,
+        seasonId: playing.seasonId,
+        title: data.title,
+        thumbnailUrl: data.thumbnailUrl,
+        episodeLabel: playing.episodeLabel,
+        currentTime,
+        duration,
+      });
+      // Update local savedTimes so the UI reflects new state
+      setSavedTimes((prev) => ({ ...prev, [playing.episodeId]: currentTime }));
+    } catch {}
+  }, [playing, data, profile?.id, seriesId]);
+
+  // Start/stop reporting interval
+  useEffect(() => {
+    if (playing) {
+      hasSeekedRef.current = false;
+      progressIntervalRef.current = setInterval(saveProgress, 5000);
+    } else {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+    }
+    return () => {
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing]);
+
+  // ── Seek to saved position once ready ────────────────────────────────────
+  const handleCanPlay = useCallback(() => {
+    if (hasSeekedRef.current || !playing) return;
+    const savedTime = playing.savedTime ?? 0;
+    if (savedTime > 5 && playerRef.current) {
+      playerRef.current.currentTime = savedTime;
+      hasSeekedRef.current = true;
+    }
+  }, [playing]);
+
+  const playEpisode = (videoUrl: string, title: string, episodeId: string, seasonId: string, episodeLabel: string) => {
+    setPlaying({ videoUrl, title, episodeId, seasonId, episodeLabel, savedTime: savedTimes[episodeId] });
   };
 
   const exitPlayer = async () => {
+    await saveProgress();
     if (document.pictureInPictureElement) {
       await document.exitPictureInPicture().catch(() => {});
     }
@@ -60,14 +150,16 @@ export default function SeriesPage() {
         </span>
       </nav>
 
-      {/* Video Player overlay — mounts immediately on tap */}
+      {/* Video Player overlay */}
       {playing && (
         <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
           <MediaPlayer
+            ref={playerRef}
             autoplay
             title={playing.title}
             src={playing.videoUrl}
             className="h-full w-full"
+            onCanPlay={handleCanPlay}
           >
             <MediaProvider />
             <PlyrLayout icons={plyrLayoutIcons} />
@@ -75,7 +167,7 @@ export default function SeriesPage() {
         </div>
       )}
 
-      {/* Series content (hidden when player is active) */}
+      {/* Series content */}
       {!playing && (
         <>
           {/* Hero */}
@@ -140,23 +232,46 @@ export default function SeriesPage() {
               <div className="space-y-3">
                 {currentSeason.episodes.map((episode: any) => {
                   const episodeTitle = `${data.title} — S${currentSeason.number}:E${episode.number} ${episode.title}`;
+                  const episodeLabel = `S${currentSeason.number}:E${episode.number} — ${episode.title}`;
+                  const savedTime = savedTimes[episode.id];
+                  const hasSaved = savedTime && savedTime > 5;
+
                   return (
-                     <div
-                       key={episode.id}
-                       onClick={() => playEpisode(episode.videoUrl, episodeTitle)}
-                       className="flex items-center gap-4 bg-zinc-800/60 active:bg-zinc-600/80 hover:bg-zinc-700/80 rounded-lg p-4 cursor-pointer transition group"
-                     >
-                       <div className="w-10 h-10 rounded-full bg-zinc-700 group-hover:bg-red-600 group-active:bg-red-600 flex items-center justify-center flex-shrink-0 transition">
-                         <FaPlay size={14} />
-                       </div>
-                       <div className="flex-1 min-w-0">
-                         <p className="text-sm text-gray-400">Episode {episode.number}</p>
-                         <p className="font-semibold truncate">{episode.title}</p>
-                       </div>
-                       {episode.duration && (
-                         <span className="text-gray-500 text-sm flex-shrink-0">{episode.duration}</span>
-                       )}
-                     </div>
+                    <div
+                      key={episode.id}
+                      onClick={() =>
+                        playEpisode(episode.videoUrl, episodeTitle, episode.id, currentSeason.id, episodeLabel)
+                      }
+                      className="relative flex items-center gap-4 bg-zinc-800/60 hover:bg-zinc-700/80 rounded-lg p-4 cursor-pointer transition group overflow-hidden"
+                    >
+                      {/* Progress bar at bottom */}
+                      {hasSaved && episode.duration && (
+                        <div className="absolute bottom-0 left-0 h-[3px] w-full bg-zinc-600">
+                          <div
+                            className="h-full bg-red-600 transition-all"
+                            style={{
+                              width: `${Math.min(100, (savedTime / (parseDuration(episode.duration) || 1)) * 100)}%`,
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      <div className="w-10 h-10 rounded-full bg-zinc-700 group-hover:bg-red-600 flex items-center justify-center flex-shrink-0 transition">
+                        <FaPlay size={14} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-400">Episode {episode.number}</p>
+                        <p className="font-semibold truncate">{episode.title}</p>
+                        {hasSaved && (
+                          <p className="text-xs text-yellow-400 mt-0.5">
+                            Resume from {Math.floor(savedTime / 60)}m {Math.floor(savedTime % 60)}s
+                          </p>
+                        )}
+                      </div>
+                      {episode.duration && (
+                        <span className="text-gray-500 text-sm flex-shrink-0">{episode.duration}</span>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -168,4 +283,12 @@ export default function SeriesPage() {
       )}
     </div>
   );
+}
+
+/** Convert "45m" / "1h 20m" / "3h 49m" → seconds for progress bar width */
+function parseDuration(d?: string): number {
+  if (!d) return 0;
+  const hours = d.match(/(\d+)h/)?.[1];
+  const mins = d.match(/(\d+)m/)?.[1];
+  return (parseInt(hours || "0") * 60 + parseInt(mins || "0")) * 60;
 }

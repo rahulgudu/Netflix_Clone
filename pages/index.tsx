@@ -9,13 +9,15 @@ import useModelInfo from "@/hooks/useModelInfo";
 import useMovieList from "@/hooks/useMovieList";
 import useSeriesList from "@/hooks/useSeriesList";
 import SeriesList from "@/components/SeriesList";
+import ContinueWatchingRow from "@/components/ContinueWatchingRow";
+import useWatchProgress from "@/hooks/useWatchProgress";
 import { useSelectionStore } from "@/zustand/states/useSelectStore";
 import { NextPageContext } from "next";
 import { getSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
-import MovieRowSkeleton from "@/components/SkelletonWrapper";
 import SkelletonWrapper from "@/components/SkelletonWrapper";
+
 export async function getServerSideProps(context: NextPageContext) {
   const session = await getSession(context);
   if (!session) {
@@ -31,8 +33,8 @@ export async function getServerSideProps(context: NextPageContext) {
     props: {},
   };
 }
-export default function Home() {
 
+export default function Home() {
   const { data: movies = [], isLoading } = useMovieList();
   const { data: seriesList = [], isLoading: isSeriesLoading } = useSeriesList();
   const { profile } = useSelectionStore();
@@ -40,6 +42,10 @@ export default function Home() {
   const { data: favMovies, isLoading: isFavLoading } = useFavourites({
     profileId: profile?.id,
   });
+
+  const { data: continueWatching, isLoading: isContinueLoading, mutate: mutateContinue } = useWatchProgress(
+    profile?.id
+  );
 
   const { isOpen, closeModel } = useModelInfo();
 
@@ -54,14 +60,22 @@ export default function Home() {
       <Navbar />
       <Billboard />
       <div className="pb-40">
-        {/* Trending Now Logic */}
+        {/* Continue Watching */}
+        {!isContinueLoading && continueWatching && continueWatching.length > 0 && (
+          <ContinueWatchingRow
+            data={continueWatching}
+            onRemove={() => mutateContinue()}
+          />
+        )}
+
+        {/* Trending Now */}
         {isLoading ? (
           <SkelletonWrapper title="Trending Now" />
         ) : (
           <MovieList title="Trending Now" data={movies} />
         )}
 
-        {/* Favourites Logic */}
+        {/* Favourites */}
         {isFavLoading ? (
           <SkelletonWrapper title="Favourites Movies" />
         ) : (
