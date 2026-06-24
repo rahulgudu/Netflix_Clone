@@ -53,8 +53,10 @@ export default async function handler(
             signature,
             expires,
         });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: "Failed to initialize upload" });
+    } catch (error: any) {
+        console.error("Upload initialization failed:", error);
+        res.status(500).json({ 
+            error: error?.response?.data?.message || error?.message || "Failed to initialize upload" 
+        });
     }
 }
