@@ -3,7 +3,8 @@ export default async function signHlsUrl(videoId: string) {
     const securityKey = process.env.BUNNY_CDN_TOKEN_KEY;
     const hostname = process.env.BUNNY_HOSTNAME;
 
-    const expires = Math.floor(Date.now() / 1000) + 3600;
+    // Set expiration to 100 years (effectively never expires) so stored DB URLs don't break after 1 hour
+    const expires = Math.floor(Date.now() / 1000) + (3600 * 24 * 365 * 100);
     const pathAllowed = `/${videoId}/`;
 
     // Sorted params (only token_path in your case)
