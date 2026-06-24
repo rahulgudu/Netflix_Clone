@@ -5,9 +5,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { AiOutlineArrowLeft } from "react-icons/ai";
 import { FaPlay } from "react-icons/fa";
 import { MediaPlayer, MediaProvider, type MediaPlayerInstance } from "@vidstack/react";
-import { PlyrLayout, plyrLayoutIcons } from "@vidstack/react/player/layouts/plyr";
+import { DefaultVideoLayout, defaultLayoutIcons } from "@vidstack/react/player/layouts/default";
 import "@vidstack/react/player/styles/base.css";
-import "@vidstack/react/player/styles/plyr/theme.css";
+import "@vidstack/react/player/styles/default/theme.css";
+import "@vidstack/react/player/styles/default/layouts/video.css";
 import axios from "axios";
 
 import useSeries from "@/hooks/useSeries";
@@ -343,7 +344,11 @@ export default function SeriesPage() {
             onTimeUpdate={handleTimeUpdate}
           >
             <MediaProvider />
-            <PlyrLayout icons={plyrLayoutIcons} />
+            <DefaultVideoLayout
+              icons={defaultLayoutIcons}
+              colorScheme="dark"
+              smallLayoutWhen={({ width }) => width < 576}
+            />
           </MediaPlayer>
 
           {/* ── Next Episode Overlay (Netflix-style, bottom-right) ── */}

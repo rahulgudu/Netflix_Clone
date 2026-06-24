@@ -4,10 +4,11 @@ import useMovie from "@/hooks/useMovie";
 import useMovieList from "@/hooks/useMovieList";
 import { useRouter } from "next/router";
 import "@vidstack/react/player/styles/base.css";
-import "@vidstack/react/player/styles/plyr/theme.css";
+import "@vidstack/react/player/styles/default/theme.css";
+import "@vidstack/react/player/styles/default/layouts/video.css";
 
 import { MediaPlayer, MediaProvider, type MediaPlayerInstance } from "@vidstack/react";
-import { PlyrLayout, plyrLayoutIcons } from "@vidstack/react/player/layouts/plyr";
+import { DefaultVideoLayout, defaultLayoutIcons } from "@vidstack/react/player/layouts/default";
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { AiOutlineArrowLeft } from "react-icons/ai";
@@ -233,7 +234,11 @@ const Movie = () => {
             onTimeUpdate={activeSource === "movie" ? handleTimeUpdate : undefined}
           >
             <MediaProvider />
-            <PlyrLayout icons={plyrLayoutIcons} />
+            <DefaultVideoLayout
+              icons={defaultLayoutIcons}
+              colorScheme="dark"
+              smallLayoutWhen={({ width }) => width < 576}
+            />
           </MediaPlayer>
 
           {/* ── Next Movie Overlay (bottom-right, Netflix-style) ── */}
