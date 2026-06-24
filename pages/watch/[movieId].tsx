@@ -134,7 +134,7 @@ const Movie = () => {
     }
   }, [resumeTime]);
 
-  // ── Time update: trigger "next movie" overlay at last 60 seconds ──────────
+  // ── Time update: trigger "next movie" overlay at last 2 minutes ───────────
   const handleTimeUpdate = useCallback(() => {
     if (!playerRef.current || nextMovieTriggeredRef.current) return;
     const currentTime = playerRef.current.currentTime;
@@ -142,7 +142,7 @@ const Movie = () => {
     if (!duration || duration < 30) return;
 
     const remaining = duration - currentTime;
-    if (remaining <= 60 && remaining > 0 && suggestedMovie) {
+    if (remaining <= 120 && remaining > 0 && suggestedMovie) {
       nextMovieTriggeredRef.current = true;
       setCountdown(5);
       setShowNextMovie(true);

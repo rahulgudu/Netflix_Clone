@@ -53,6 +53,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const percentage = duration > 0 ? (currentTime / duration) * 100 : 0;
 
+      // ── Explicit reset: currentTime=0 means "mark as unwatched / reset progress"
+      if (currentTime === 0 && episodeId) {
+        await prismadb.watchProgress.deleteMany({
+          where: profileId
+            ? { profileId, episodeId }
+            : { userId: currentUser.id, episodeId },
+        });
+        return res.status(200).json({ reset: true });
+      }
+
       // If finished (>= 95%), delete the record (remove from Continue Watching)
       if (percentage >= 95) {
         const deleteWhere = profileId

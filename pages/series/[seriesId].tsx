@@ -80,6 +80,34 @@ export default function SeriesPage() {
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasSeekedRef = useRef(false);
 
+  // ── Reset a watched episode's progress to 0 ───────────────────────────────
+  // Called when user moves to the next episode so the previous one shows 0%
+  const resetEpisodeProgress = useCallback(async (episodeId: string) => {
+    if (!episodeId) return;
+    try {
+      // Post with currentTime=0 and duration=1 triggers percentage=0 upsert,
+      // effectively resetting the record so it disappears from Continue Watching
+      await axios.post("/api/watch-progress", {
+        profileId: profile?.id || null,
+        contentType: "episode",
+        episodeId,
+        seriesId,
+        title: data?.title || "",
+        thumbnailUrl: data?.thumbnailUrl || "",
+        episodeLabel: "",
+        currentTime: 0,
+        duration: 1,
+      });
+      // Also clear from local state
+      setSavedTimes((prev) => {
+        const next = { ...prev };
+        delete next[episodeId];
+        return next;
+      });
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id, seriesId, data?.title, data?.thumbnailUrl]);
+
   // ── Fetch saved progress ──────────────────────────────────────────────────
   useEffect(() => {
     if (!seriesId) return;
@@ -144,7 +172,7 @@ export default function SeriesPage() {
     return null; // No next episode (last episode of series)
   }, [playing, data, savedTimes]);
 
-  // ── Time update handler — triggers next-ep overlay at 60s remaining ───────
+  // ── Time update handler — triggers next-ep overlay at last 2 minutes ──────
   const handleTimeUpdate = useCallback(() => {
     if (!playerRef.current || nextEpTriggeredRef.current) return;
     const currentTime = playerRef.current.currentTime;
@@ -152,7 +180,7 @@ export default function SeriesPage() {
     if (!duration || duration < 30) return;
 
     const remaining = duration - currentTime;
-    if (remaining <= 60 && remaining > 0) {
+    if (remaining <= 120 && remaining > 0) {
       const next = findNextEpisode();
       if (next) {
         nextEpTriggeredRef.current = true;
@@ -174,7 +202,10 @@ export default function SeriesPage() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(countdownRef.current!);
-          // Auto-play next episode
+          // Reset current episode progress to 0 before auto-playing next
+          if (playing?.episodeId) {
+            resetEpisodeProgress(playing.episodeId);
+          }
           setShowNextEp(false);
           setPlaying(nextEpData);
           return 5;
@@ -186,6 +217,7 @@ export default function SeriesPage() {
     return () => {
       if (countdownRef.current) clearInterval(countdownRef.current);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showNextEp, nextEpData]);
 
   // ── Progress reporter ─────────────────────────────────────────────────────
@@ -259,6 +291,10 @@ export default function SeriesPage() {
   const handlePlayNextNow = () => {
     if (!nextEpData) return;
     if (countdownRef.current) clearInterval(countdownRef.current);
+    // Reset current episode progress to 0 before playing next
+    if (playing?.episodeId) {
+      resetEpisodeProgress(playing.episodeId);
+    }
     setShowNextEp(false);
     setPlaying(nextEpData);
   };
