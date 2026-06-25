@@ -16,32 +16,7 @@ import { FaPlay, FaFilm, FaHome } from "react-icons/fa";
 import { useSelectionStore } from "@/zustand/states/useSelectStore";
 import axios from "axios";
 
-// ── SVG countdown ring ─────────────────────────────────────────────────────
-const RADIUS = 22;
-const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-
-function CountdownRing({ seconds, total = 5 }: { seconds: number; total?: number }) {
-  const progress = seconds / total;
-  const dash = CIRCUMFERENCE * progress;
-  return (
-    <svg width="56" height="56" className="rotate-[-90deg]">
-      <circle cx="28" cy="28" r={RADIUS} fill="none" stroke="#3f3f46" strokeWidth="4" />
-      <circle
-        cx="28" cy="28" r={RADIUS} fill="none"
-        stroke="#e50914" strokeWidth="4"
-        strokeDasharray={`${dash} ${CIRCUMFERENCE}`}
-        style={{ transition: "stroke-dasharray 1s linear" }}
-      />
-      <text
-        x="28" y="28" textAnchor="middle" dominantBaseline="central"
-        fill="white" fontSize="14" fontWeight="700"
-        style={{ transform: "rotate(90deg)", transformOrigin: "28px 28px" }}
-      >
-        {seconds}
-      </text>
-    </svg>
-  );
-}
+// Countdown ring removed (auto-autoplay countdown timer replaced by ended trigger)
 
 const Movie = () => {
   const router = useRouter();
@@ -55,8 +30,6 @@ const Movie = () => {
 
   // ── Next movie autoplay state ─────────────────────────────────────────────
   const [showNextMovie, setShowNextMovie] = useState(false);
-  const [countdown, setCountdown] = useState(5);
-  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const nextMovieTriggeredRef = useRef(false);
 
   const playerRef = useRef<MediaPlayerInstance | null>(null);
@@ -135,7 +108,7 @@ const Movie = () => {
     }
   }, [resumeTime]);
 
-  // ── Time update: trigger "next movie" overlay at last 2 minutes ───────────
+  // ── Time update: trigger "next movie" overlay at last 1 minute ───────────
   const handleTimeUpdate = useCallback(() => {
     if (!playerRef.current || nextMovieTriggeredRef.current) return;
     const currentTime = playerRef.current.currentTime;
@@ -143,44 +116,15 @@ const Movie = () => {
     if (!duration || duration < 30) return;
 
     const remaining = duration - currentTime;
-    if (remaining <= 120 && remaining > 0 && suggestedMovie) {
+    if (remaining <= 60 && remaining > 0 && suggestedMovie) {
       nextMovieTriggeredRef.current = true;
-      setCountdown(5);
       setShowNextMovie(true);
     }
   }, [suggestedMovie]);
 
-  // ── Countdown auto-redirect ───────────────────────────────────────────────
-  useEffect(() => {
-    if (!showNextMovie) {
-      if (countdownRef.current) clearInterval(countdownRef.current);
-      return;
-    }
-
-    countdownRef.current = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(countdownRef.current!);
-          if (suggestedMovie) {
-            router.push(`/watch/${suggestedMovie.id}`);
-          } else {
-            router.push("/");
-          }
-          return 5;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => {
-      if (countdownRef.current) clearInterval(countdownRef.current);
-    };
-  }, [showNextMovie, suggestedMovie, router]);
-
   const exitPlayer = async () => {
     await saveProgress();
     setShowNextMovie(false);
-    if (countdownRef.current) clearInterval(countdownRef.current);
     if (document.pictureInPictureElement) {
       await document.exitPictureInPicture().catch(() => {});
     }
@@ -189,15 +133,21 @@ const Movie = () => {
 
   const handlePlayNextNow = () => {
     if (!suggestedMovie) return;
-    if (countdownRef.current) clearInterval(countdownRef.current);
     setShowNextMovie(false);
     router.push(`/watch/${suggestedMovie.id}`);
   };
 
   const handleCancelNext = () => {
-    if (countdownRef.current) clearInterval(countdownRef.current);
     setShowNextMovie(false);
   };
+
+  const handleEnded = useCallback(() => {
+    if (activeSource === "movie" && suggestedMovie) {
+      router.push(`/watch/${suggestedMovie.id}`);
+    } else {
+      exitPlayer();
+    }
+  }, [activeSource, suggestedMovie, router]);
 
   if (!data) {
     return (
@@ -229,9 +179,10 @@ const Movie = () => {
             autoplay
             title={data.title}
             src={activeSource === "movie" ? data.videoUrl : data.trailerUrl}
-            className="h-full w-full"
+            className="h-full w-full font-sans"
             onCanPlay={activeSource === "movie" ? handleCanPlay : undefined}
             onTimeUpdate={activeSource === "movie" ? handleTimeUpdate : undefined}
+            onEnded={handleEnded}
           >
             <MediaProvider />
             <DefaultVideoLayout
@@ -239,51 +190,58 @@ const Movie = () => {
               colorScheme="dark"
               smallLayoutWhen={({ width }) => width < 576}
             />
-          </MediaPlayer>
 
-          {/* ── Next Movie Overlay (bottom-right, Netflix-style) ── */}
-          {showNextMovie && suggestedMovie && (
-            <div className="absolute bottom-20 right-6 z-[200] flex flex-col items-end gap-3 animate-in slide-in-from-bottom-4 duration-300">
-              <div className="bg-zinc-900/95 backdrop-blur-sm border border-zinc-700 rounded-xl overflow-hidden w-72 shadow-2xl">
-                {/* Thumbnail */}
-                <div className="relative w-full h-28">
-                  <img
-                    src={suggestedMovie.thumbnailUrl}
-                    alt={suggestedMovie.title}
-                    className="w-full h-full object-cover opacity-70"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 to-transparent" />
-                  <div className="absolute bottom-2 left-3 text-[10px] uppercase tracking-widest text-gray-400 font-bold">
-                    Up Next
-                  </div>
-                </div>
-
-                <div className="p-4">
-                  <p className="text-white font-semibold text-sm leading-snug line-clamp-2 mb-4">
-                    {suggestedMovie.title}
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={handlePlayNextNow}
-                      className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-md font-bold text-sm hover:bg-white/90 transition flex-1 justify-center"
-                    >
-                      <FaPlay size={12} />
-                      Play Now
-                    </button>
-                    <div className="flex-shrink-0">
-                      <CountdownRing seconds={countdown} total={5} />
+            {/* ── Next Movie Overlay (bottom-right, Netflix-style) inside player to support fullscreen ── */}
+            {showNextMovie && suggestedMovie && (
+              <div 
+                className="absolute bottom-24 right-6 z-[200] flex flex-col items-end gap-3 animate-in slide-in-from-bottom-4 duration-300"
+                style={{ pointerEvents: "auto" }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="bg-zinc-900/95 backdrop-blur-sm border border-zinc-700 rounded-xl overflow-hidden w-72 shadow-2xl">
+                  {/* Thumbnail */}
+                  <div className="relative w-full h-28">
+                    <img
+                      src={suggestedMovie.thumbnailUrl}
+                      alt={suggestedMovie.title}
+                      className="w-full h-full object-cover opacity-70"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 to-transparent" />
+                    <div className="absolute bottom-2 left-3 text-[10px] uppercase tracking-widest text-gray-400 font-bold">
+                      Up Next
                     </div>
                   </div>
-                  <button
-                    onClick={handleCancelNext}
-                    className="mt-2 w-full text-center text-xs text-gray-500 hover:text-gray-300 transition py-1"
-                  >
-                    Cancel Autoplay
-                  </button>
+
+                  <div className="p-4">
+                    <p className="text-white font-semibold text-sm leading-snug line-clamp-2 mb-4">
+                      {suggestedMovie.title}
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePlayNextNow();
+                        }}
+                        className="flex items-center gap-2 bg-white text-black px-4 py-2.5 rounded-md font-bold text-sm hover:bg-white/90 transition flex-1 justify-center cursor-pointer pointer-events-auto"
+                      >
+                        <FaPlay size={12} />
+                        Play Now
+                      </button>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCancelNext();
+                      }}
+                      className="mt-2.5 w-full text-center text-xs text-gray-500 hover:text-gray-300 transition py-1 cursor-pointer pointer-events-auto"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </MediaPlayer>
         </div>
       ) : (
         /* Hero Info Section */
