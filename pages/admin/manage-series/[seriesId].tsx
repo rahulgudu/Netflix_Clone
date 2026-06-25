@@ -106,112 +106,108 @@ function EpisodeRowCard({
     if (file) startUpload(file);
   };
 
-  const statusIcon = () => {
-    if (row.status === "authorizing" || row.status === "uploading")
-      return <Loader2 size={15} className="animate-spin text-blue-400" />;
-    if (row.status === "done") return <CheckCircle2 size={15} className="text-green-400" />;
-    if (row.status === "error") return <XCircle size={15} className="text-red-400" />;
-    return null;
-  };
-
   const isUploading = row.status === "authorizing" || row.status === "uploading";
   const isDone = row.status === "done";
 
   return (
-    <div className="group relative bg-[#111] border border-zinc-800 rounded-xl overflow-hidden transition-all duration-200 hover:border-zinc-600">
-      {/* Episode number badge */}
-      <div className="flex items-start gap-4 p-4">
-        <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center flex-shrink-0 mt-1 text-xs font-bold text-zinc-400">
+    <div className="group relative bg-[#1f1f1f] border border-zinc-800 hover:border-zinc-700 rounded-md overflow-hidden transition-all duration-200">
+      <div className="flex items-start gap-4 p-5">
+        {/* Episode number badge */}
+        <div className="w-8 h-8 rounded-full bg-[#e50914] text-white flex items-center justify-center flex-shrink-0 mt-1 text-xs font-extrabold shadow-md">
           {index + 1}
         </div>
 
-        <div className="flex-1 min-w-0 space-y-3">
+        <div className="flex-1 min-w-0 space-y-4">
           {/* Title + Duration row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1 block">
-                Episode Title <span className="text-red-500">*</span>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
+                Episode Title <span className="text-[#e50914]">*</span>
               </label>
               <input
                 placeholder="e.g. The Beginning"
                 value={row.title}
                 onChange={(e) => onUpdate(row.id, { title: e.target.value })}
-                className="w-full bg-black border border-zinc-800 focus:border-zinc-600 px-3 py-2 rounded-lg text-sm outline-none transition-colors placeholder:text-zinc-600"
+                className="w-full bg-[#2a2a2a] hover:bg-[#333] border-b-2 border-transparent focus:border-[#e50914] px-4 py-2.5 rounded text-sm text-white outline-none transition-all duration-200 placeholder:text-zinc-600"
               />
             </div>
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1 block">
-                Duration <span className="text-red-500">*</span>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
+                Duration <span className="text-[#e50914]">*</span>
               </label>
               <input
                 placeholder="e.g. 42m or 1h 5m"
                 value={row.duration}
                 onChange={(e) => onUpdate(row.id, { duration: e.target.value })}
-                className="w-full bg-black border border-zinc-800 focus:border-zinc-600 px-3 py-2 rounded-lg text-sm outline-none transition-colors placeholder:text-zinc-600"
+                className="w-full bg-[#2a2a2a] hover:bg-[#333] border-b-2 border-transparent focus:border-[#e50914] px-4 py-2.5 rounded text-sm text-white outline-none transition-all duration-200 placeholder:text-zinc-600"
               />
             </div>
           </div>
 
           {/* Video upload area */}
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1 block">
-              Video File <span className="text-red-500">*</span>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
+              Video File <span className="text-[#e50914]">*</span>
             </label>
 
             {isDone ? (
-              <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-lg px-4 py-3">
-                <CheckCircle2 size={16} className="text-green-400 flex-shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-green-400 text-sm font-medium">Upload complete</p>
-                  <p className="text-zinc-500 text-[10px] font-mono truncate">{row.file?.name}</p>
+              <div className="flex items-center gap-3 bg-[#46d369]/10 border border-[#46d369]/30 rounded px-4 py-3.5">
+                <CheckCircle2 size={18} className="text-[#46d369] flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[#46d369] text-sm font-bold">Upload complete</p>
+                  <p className="text-zinc-500 text-[10px] font-mono truncate mt-0.5">{row.file?.name}</p>
                 </div>
                 <button
                   onClick={() => {
                     onUpdate(row.id, { status: "idle", videoId: "", progress: 0, file: null });
                     if (fileInputRef.current) fileInputRef.current.value = "";
                   }}
-                  className="ml-auto text-zinc-500 hover:text-white text-xs underline flex-shrink-0"
+                  className="text-zinc-400 hover:text-white text-xs underline font-medium flex-shrink-0"
                 >
                   Replace
                 </button>
               </div>
             ) : isUploading ? (
-              <div className="bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <Loader2 size={14} className="animate-spin text-blue-400 flex-shrink-0" />
-                  <span className="text-blue-400 text-sm font-medium">
+              <div className="bg-zinc-950 border border-zinc-850 rounded px-4 py-3.5">
+                <div className="flex items-center gap-2.5 mb-2.5">
+                  <Loader2 size={15} className="animate-spin text-[#e50914] flex-shrink-0" />
+                  <span className="text-[#e50914] text-sm font-semibold">
                     {row.status === "authorizing" ? "Authorizing..." : `Uploading... ${row.progress}%`}
                   </span>
-                  <span className="ml-auto text-zinc-600 text-xs">{row.file?.name}</span>
+                  <span className="ml-auto text-zinc-500 text-xs font-mono truncate max-w-[200px]">{row.file?.name}</span>
                 </div>
                 <div className="w-full bg-zinc-800 rounded-full h-1.5 overflow-hidden">
                   <div
-                    className="bg-blue-500 h-full rounded-full transition-all duration-300"
+                    className="bg-[#e50914] h-full rounded-full transition-all duration-300"
                     style={{ width: `${row.progress}%` }}
                   />
                 </div>
               </div>
             ) : row.status === "error" ? (
-              <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">
-                <XCircle size={16} className="text-red-400 flex-shrink-0" />
-                <p className="text-red-400 text-sm">{row.errorMsg}</p>
+              <div className="flex items-center gap-3 bg-red-950/20 border border-red-500/20 rounded px-4 py-3.5">
+                <XCircle size={18} className="text-[#e50914] flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[#e50914] text-sm font-bold">Upload failed</p>
+                  <p className="text-zinc-400 text-xs mt-0.5">{row.errorMsg}</p>
+                </div>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="ml-auto text-zinc-400 hover:text-white text-xs underline flex-shrink-0"
+                  className="text-zinc-300 hover:text-white text-xs underline font-medium flex-shrink-0"
                 >
                   Retry
                 </button>
               </div>
             ) : (
-              <label
-                className="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-zinc-700 rounded-lg cursor-pointer hover:border-zinc-500 hover:bg-zinc-900/50 transition-all duration-200 group/drop"
+              <div
+                className="flex flex-col items-center justify-center w-full h-24 border border-dashed border-zinc-700 hover:border-[#e50914] bg-zinc-950/40 hover:bg-zinc-950/80 rounded cursor-pointer transition-all duration-200 py-4 group/drop"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <Upload size={18} className="text-zinc-600 group-hover/drop:text-zinc-400 mb-1 transition-colors" />
-                <p className="text-xs text-zinc-600 group-hover/drop:text-zinc-400 transition-colors">
+                <Upload size={18} className="text-zinc-500 group-hover/drop:text-[#e50914] mb-1.5 transition-colors" />
+                <p className="text-xs text-zinc-400 group-hover/drop:text-white transition-colors font-medium">
                   Click to select video file
                 </p>
-              </label>
+                <p className="text-[10px] text-zinc-600 mt-0.5">MP4 or MKV preferred</p>
+              </div>
             )}
 
             <input
@@ -229,18 +225,18 @@ function EpisodeRowCard({
           <button
             onClick={() => onRemove(row.id)}
             disabled={isUploading}
-            className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed mt-1"
+            className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-zinc-500 hover:text-[#e50914] hover:bg-[#e50914]/15 transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed mt-1"
           >
-            <Trash2 size={15} />
+            <Trash2 size={16} />
           </button>
         )}
       </div>
 
       {/* Active upload progress stripe */}
       {isUploading && (
-        <div className="absolute bottom-0 left-0 h-[2px] bg-zinc-800 w-full">
+        <div className="absolute bottom-0 left-0 h-[3px] bg-zinc-800 w-full">
           <div
-            className="h-full bg-blue-500 transition-all duration-300"
+            className="h-full bg-[#e50914] transition-all duration-300"
             style={{ width: `${row.progress}%` }}
           />
         </div>
@@ -313,21 +309,21 @@ function BulkEpisodePanel({
   };
 
   return (
-    <div className="mt-5 pt-5 border-t border-zinc-800/60">
+    <div className="mt-6 pt-6 border-t border-zinc-800/80">
       {/* Section header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <FilePlus2 size={16} className="text-red-500" />
-          <span className="text-sm font-bold text-white/80 uppercase tracking-wider">
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2.5">
+          <FilePlus2 size={16} className="text-[#e50914]" />
+          <span className="text-xs font-black text-white/80 uppercase tracking-widest">
             Add Episodes
           </span>
-          <span className="bg-zinc-800 text-zinc-400 text-[10px] px-2 py-0.5 rounded-full font-medium">
-            {rows.length} queued
+          <span className="bg-[#e50914] text-white text-[10px] px-2 py-0.5 rounded font-extrabold tracking-wide uppercase">
+            {rows.length} {rows.length === 1 ? "Episode" : "Episodes"} Queued
           </span>
         </div>
         <button
           onClick={addRow}
-          className="flex items-center gap-1.5 text-xs font-semibold text-white bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 px-3 py-1.5 rounded-lg transition-all duration-150"
+          className="flex items-center gap-1.5 text-xs font-bold text-white bg-zinc-900 border border-zinc-850 hover:bg-[#e50914] hover:border-transparent px-4 py-2 rounded transition-all duration-150 uppercase tracking-wider"
         >
           <Plus size={13} />
           Add Another
@@ -335,12 +331,12 @@ function BulkEpisodePanel({
       </div>
 
       {/* Upload hint */}
-      <p className="text-xs text-zinc-600 mb-4 leading-relaxed">
-        Upload videos for all episodes simultaneously. Once all uploads are complete, click <strong className="text-zinc-400">Save All Episodes</strong> to add them to the season.
+      <p className="text-xs text-zinc-400 mb-5 leading-relaxed">
+        Upload videos for all episodes simultaneously. Once all uploads are complete, click <strong className="text-white">Save All Episodes</strong> to add them to the season.
       </p>
 
       {/* Episode rows */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         {rows.map((row, idx) => (
           <EpisodeRowCard
             key={row.id}
@@ -355,16 +351,17 @@ function BulkEpisodePanel({
       </div>
 
       {/* Status summary */}
-      <div className="mt-4 flex flex-wrap gap-3 items-center text-xs text-zinc-500">
+      <div className="mt-5 flex flex-wrap gap-3.5 items-center text-xs text-zinc-500 bg-zinc-950/40 p-3.5 rounded border border-zinc-850/60">
+        <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Queue status:</span>
         {rows.map((r, i) => (
-          <div key={r.id} className="flex items-center gap-1">
-            <span className="text-zinc-600">E{i + 1}</span>
-            {r.status === "done" && <CheckCircle2 size={12} className="text-green-400" />}
+          <div key={r.id} className="flex items-center gap-1 bg-[#1a1a1a] px-2 py-1 rounded border border-zinc-855">
+            <span className="text-zinc-500 font-bold">E{i + 1}</span>
+            {r.status === "done" && <CheckCircle2 size={13} className="text-[#46d369]" />}
             {(r.status === "authorizing" || r.status === "uploading") && (
-              <><Loader2 size={12} className="animate-spin text-blue-400" /><span className="text-blue-400">{r.progress}%</span></>
+              <><Loader2 size={13} className="animate-spin text-[#e50914]" /><span className="text-[#e50914] font-semibold text-[10px]">{r.progress}%</span></>
             )}
-            {r.status === "error" && <XCircle size={12} className="text-red-400" />}
-            {r.status === "idle" && <span className="text-zinc-700">—</span>}
+            {r.status === "error" && <XCircle size={13} className="text-[#e50914]" />}
+            {r.status === "idle" && <span className="text-zinc-700 text-[10px]">—</span>}
           </div>
         ))}
       </div>
@@ -372,13 +369,13 @@ function BulkEpisodePanel({
       {/* Submit result */}
       {submitResult && (
         <div
-          className={`mt-4 flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium border ${
+          className={`mt-4 flex items-center gap-2.5 px-4 py-3 rounded text-sm font-medium border ${
             submitResult.ok
-              ? "bg-green-500/10 border-green-500/30 text-green-400"
-              : "bg-red-500/10 border-red-500/30 text-red-400"
+              ? "bg-[#46d369]/10 border-[#46d369]/30 text-[#46d369]"
+              : "bg-red-500/10 border-red-500/30 text-[#e50914]"
           }`}
         >
-          {submitResult.ok ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
+          {submitResult.ok ? <CheckCircle2 size={18} /> : <XCircle size={18} />}
           {submitResult.msg}
         </div>
       )}
@@ -387,16 +384,16 @@ function BulkEpisodePanel({
       <button
         onClick={handleSubmit}
         disabled={!isValid || submitting || anyUploading}
-        className="mt-4 flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-150 w-full justify-center"
+        className="mt-6 flex items-center gap-2 bg-[#e50914] hover:bg-[#b81d24] disabled:bg-zinc-850 disabled:text-zinc-650 disabled:opacity-40 disabled:cursor-not-allowed px-6 py-3.5 rounded font-bold text-sm uppercase tracking-widest transition-all duration-150 w-full justify-center shadow-lg hover:shadow-[#e50914]/10"
       >
         {submitting ? (
-          <><Loader2 size={15} className="animate-spin" /> Saving...</>
+          <><Loader2 size={16} className="animate-spin" /> Saving Episodes...</>
         ) : anyUploading ? (
-          <><Loader2 size={15} className="animate-spin text-blue-300" /> Uploading...</>
+          <><Loader2 size={16} className="animate-spin text-white" /> Uploading...</>
         ) : !allDone ? (
-          <><Upload size={15} /> Upload all videos first</>
+          <><Upload size={16} /> Upload all videos first</>
         ) : (
-          <><Save size={15} /> Save {rows.length} Episode{rows.length !== 1 ? "s" : ""} to Season {seasonNumber}</>
+          <><Save size={16} /> Save {rows.length} Episode{rows.length !== 1 ? "s" : ""} to Season {seasonNumber}</>
         )}
       </button>
     </div>
@@ -495,10 +492,10 @@ export default function EditSeriesPage() {
 
   if (isLoading || !data) {
     return (
-      <div className="min-h-screen bg-[#0d0d0d] text-white flex items-center justify-center">
+      <div className="min-h-screen bg-[#141414] text-white flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-red-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-zinc-500 text-sm">Loading series...</p>
+          <div className="w-10 h-10 border-4 border-[#e50914] border-t-transparent rounded-full animate-spin" />
+          <p className="text-zinc-500 text-sm font-medium tracking-wide">Loading series...</p>
         </div>
       </div>
     );
@@ -511,93 +508,120 @@ export default function EditSeriesPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#0d0d0d] text-white px-6 py-10">
+    <div className="min-h-screen bg-[#141414] text-white px-6 py-10 font-sans">
       <div className="max-w-5xl mx-auto">
         {/* ── Header ── */}
-        <div className="flex items-center gap-4 mb-10">
+        <div className="flex items-center gap-4 mb-10 border-b border-zinc-800/80 pb-6">
           <button
             onClick={() => router.push("/admin/manage-series")}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-800 hover:bg-zinc-700 transition-colors flex-shrink-0"
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-[#181818] border border-zinc-800 hover:border-[#e50914] text-white hover:text-[#e50914] transition-all flex-shrink-0 shadow-md"
           >
             <AiOutlineArrowLeft size={18} />
           </button>
           <div>
-            <h1 className="text-3xl font-black tracking-tight">{data.title}</h1>
-            <p className="text-zinc-500 text-sm mt-0.5">
+            <h1 className="text-4xl font-extrabold tracking-tight text-white">{data.title}</h1>
+            <p className="text-zinc-400 text-xs mt-1 uppercase font-bold tracking-widest">
               {seasons.length} {seasons.length === 1 ? "season" : "seasons"} &middot; {totalEpisodes} episodes
             </p>
           </div>
         </div>
 
         {/* ── Series Info ── */}
-        <div className="bg-[#111] rounded-2xl border border-zinc-800 p-6 mb-8 space-y-4">
-          <h2 className="text-red-500 font-black uppercase text-xs tracking-[0.15em] mb-4">Series Info</h2>
-
-          <input
-            placeholder="Title"
-            value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
-            className="w-full bg-black border border-zinc-800 focus:border-zinc-600 px-4 py-2.5 rounded-lg outline-none transition-colors"
-          />
-          <textarea
-            placeholder="Description"
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            className="w-full bg-black border border-zinc-800 focus:border-zinc-600 px-4 py-2.5 rounded-lg outline-none h-24 resize-none transition-colors"
-          />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              placeholder="Genre"
-              value={form.genre}
-              onChange={(e) => setForm({ ...form, genre: e.target.value })}
-              className="bg-black border border-zinc-800 focus:border-zinc-600 px-4 py-2.5 rounded-lg outline-none transition-colors"
-            />
-            <select
-              value={form.regionId}
-              onChange={(e) => setForm({ ...form, regionId: e.target.value })}
-              className="bg-black border border-zinc-800 focus:border-zinc-600 px-4 py-2.5 rounded-lg outline-none transition-colors text-white"
-            >
-              <option value="">Select Region</option>
-              {regionsData?.map((r: any) => (
-                <option key={r.id} value={r.id}>{r.region}</option>
-              ))}
-            </select>
+        <div className="bg-[#181818] rounded-md border border-zinc-800/80 p-8 mb-8 space-y-6 shadow-xl shadow-black/40">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="w-1.5 h-6 bg-[#e50914] rounded-full" />
+            <h2 className="text-[#e50914] font-black uppercase text-xs tracking-[0.2em]">Series Information</h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-zinc-800/60">
-            <div>
-              <p className="text-zinc-500 font-bold mb-2 uppercase text-[10px] tracking-wider">Trailer</p>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Series Title</label>
+            <input
+              placeholder="Title"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              className="w-full bg-[#2a2a2a] hover:bg-[#333] border-b-2 border-transparent focus:border-[#e50914] px-4 py-3 rounded text-sm text-white outline-none transition-all duration-200 placeholder:text-zinc-500"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Description</label>
+            <textarea
+              placeholder="Description"
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              className="w-full bg-[#2a2a2a] hover:bg-[#333] border-b-2 border-transparent focus:border-[#e50914] px-4 py-3 rounded text-sm text-white outline-none h-28 resize-none transition-all duration-200 placeholder:text-zinc-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Genre</label>
+              <input
+                placeholder="Genre"
+                value={form.genre}
+                onChange={(e) => setForm({ ...form, genre: e.target.value })}
+                className="w-full bg-[#2a2a2a] hover:bg-[#333] border-b-2 border-transparent focus:border-[#e50914] px-4 py-3 rounded text-sm text-white outline-none transition-all duration-200 placeholder:text-zinc-500"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Region</label>
+              <select
+                value={form.regionId}
+                onChange={(e) => setForm({ ...form, regionId: e.target.value })}
+                className="w-full bg-[#2a2a2a] hover:bg-[#333] border-b-2 border-transparent focus:border-[#e50914] px-4 py-3 rounded text-sm text-white outline-none transition-all duration-200 cursor-pointer text-white"
+              >
+                <option value="">Select Region</option>
+                {regionsData?.map((r: any) => (
+                  <option key={r.id} value={r.id}>{r.region}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-zinc-800/60">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">Trailer Video</label>
               {data.trailerUrl && (
-                <p className="text-[10px] text-blue-500 mb-2 truncate">Current: {data.trailerUrl}</p>
+                <div className="flex items-center gap-2 text-xs text-zinc-400 bg-zinc-950 border border-zinc-850 px-3 py-2.5 rounded">
+                  <span className="text-[#e50914] font-bold uppercase text-[9px] tracking-wider">Active:</span>
+                  <span className="truncate flex-1 font-mono">{data.trailerUrl}</span>
+                </div>
               )}
               <VideoUploader onSuccess={(id) => setForm({ ...form, trailerId: id })} />
             </div>
-            <div>
-              <p className="text-zinc-500 font-bold mb-2 uppercase text-[10px] tracking-wider">Thumbnail</p>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">Thumbnail Image</label>
               {form.thumbnailUrl && (
-                <img src={form.thumbnailUrl} alt="thumb" className="w-full h-24 object-cover rounded-lg mb-2" />
+                <div className="relative rounded overflow-hidden aspect-video border border-zinc-850 w-full max-h-36 bg-zinc-950 flex items-center justify-center shadow-inner">
+                  <img src={form.thumbnailUrl} alt="thumb" className="w-full h-full object-cover" />
+                </div>
               )}
               <ImageUploader onSuccess={(url) => setForm({ ...form, thumbnailUrl: url })} />
             </div>
           </div>
 
-          <button
-            onClick={handleSaveInfo}
-            disabled={saving}
-            className="flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 px-6 py-2.5 rounded-lg font-bold text-sm transition-all duration-150"
-          >
-            <Save size={15} /> {saving ? "Saving..." : "Save Info"}
-          </button>
+          <div className="pt-4">
+            <button
+              onClick={handleSaveInfo}
+              disabled={saving}
+              className="flex items-center gap-2 bg-[#e50914] hover:bg-[#b81d24] disabled:bg-zinc-800 disabled:opacity-50 px-8 py-3 rounded font-bold text-sm uppercase tracking-widest transition-all duration-150 shadow-lg hover:shadow-[#e50914]/10"
+            >
+              <Save size={15} /> {saving ? "Saving info..." : "Save Info"}
+            </button>
+          </div>
         </div>
 
         {/* ── Seasons & Episodes ── */}
-        <div className="space-y-3">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-black tracking-tight">Seasons & Episodes</h2>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-6 bg-[#e50914] rounded-full" />
+              <h2 className="text-xl font-extrabold tracking-tight text-white uppercase text-sm tracking-wider">Seasons & Episodes</h2>
+            </div>
             <button
               onClick={handleAddSeason}
               disabled={addingSeason}
-              className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-lg text-sm font-bold hover:bg-zinc-100 active:scale-95 transition-all duration-150 disabled:opacity-50"
+              className="flex items-center gap-2 bg-white text-black px-5 py-2.5 rounded font-bold text-xs uppercase tracking-wider hover:bg-zinc-200 active:scale-95 transition-all duration-150 disabled:opacity-50 shadow-md"
             >
               <Plus size={15} /> {addingSeason ? "Adding..." : "Add Season"}
             </button>
@@ -607,20 +631,20 @@ export default function EditSeriesPage() {
             const isExpanded = expandedSeasons.has(season.id);
 
             return (
-              <div key={season.id} className="bg-[#111] rounded-2xl border border-zinc-800 overflow-hidden">
+              <div key={season.id} className="bg-[#181818] rounded-md border border-zinc-800/80 overflow-hidden shadow-lg">
                 {/* Season header */}
                 <div
-                  className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-zinc-800/30 transition-colors"
+                  className="flex items-center justify-between px-6 py-5 cursor-pointer hover:bg-zinc-800/20 transition-all duration-150"
                   onClick={() => toggleSeason(season.id)}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-full bg-zinc-800 flex items-center justify-center flex-shrink-0">
-                      {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  <div className="flex items-center gap-4">
+                    <div className="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center flex-shrink-0 text-[#e50914]">
+                      {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </div>
                     <div>
-                      <h3 className="font-bold">Season {season.number}</h3>
-                      <p className="text-xs text-zinc-500 mt-0.5">
-                        {season.episodes?.length ?? 0} episodes
+                      <h3 className="font-bold text-base text-white tracking-wide">Season {season.number}</h3>
+                      <p className="text-xs text-zinc-500 font-medium mt-0.5">
+                        {season.episodes?.length ?? 0} {season.episodes?.length === 1 ? "episode" : "episodes"}
                       </p>
                     </div>
                   </div>
@@ -629,42 +653,49 @@ export default function EditSeriesPage() {
                       e.stopPropagation();
                       handleDeleteSeason(season.id, season.number);
                     }}
-                    className="w-8 h-8 flex items-center justify-center rounded-full text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-all duration-200"
+                    className="w-8 h-8 flex items-center justify-center rounded-full text-zinc-500 hover:text-[#e50914] hover:bg-[#e50914]/15 transition-all duration-150"
                   >
-                    <Trash2 size={15} />
+                    <Trash2 size={16} />
                   </button>
                 </div>
 
                 {/* Season body */}
                 {isExpanded && (
-                  <div className="border-t border-zinc-800/60 px-5 pb-6 pt-4">
+                  <div className="border-t border-zinc-800/80 px-6 pb-8 pt-5">
                     {/* Existing episodes */}
                     {season.episodes?.length > 0 ? (
-                      <div className="space-y-2 mb-2">
+                      <div className="space-y-2.5 mb-6">
                         {season.episodes.map((ep: any) => (
                           <div
                             key={ep.id}
-                            className="flex items-center gap-4 bg-black/30 border border-zinc-800/40 rounded-xl px-4 py-3 group"
+                            className="flex items-center gap-4 bg-zinc-900/60 border border-zinc-850/60 rounded-md px-5 py-4 group hover:bg-zinc-900 transition-colors duration-150"
                           >
-                            <span className="text-xs text-zinc-600 font-bold w-6 flex-shrink-0">E{ep.number}</span>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm truncate">{ep.title}</p>
-                              <p className="text-[10px] text-zinc-600 mt-0.5">{ep.duration}</p>
+                            <span className="text-xl font-black text-zinc-600 w-8 text-center flex-shrink-0">
+                              {ep.number}
+                            </span>
+                            <div className="w-20 aspect-video rounded bg-zinc-950 border border-zinc-855 flex items-center justify-center text-zinc-650 group-hover:border-[#e50914] transition-all duration-150 flex-shrink-0">
+                              <Upload size={16} className="text-zinc-600 group-hover:text-[#e50914] transition-colors" />
                             </div>
-                            <p className="text-[10px] text-blue-500/60 truncate max-w-[140px] hidden md:block font-mono">
-                              {ep.videoUrl?.slice(0, 40)}...
-                            </p>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-sm text-white truncate group-hover:text-[#e50914] transition-colors">{ep.title}</p>
+                              <p className="text-xs text-zinc-500 mt-1 font-medium">{ep.duration}</p>
+                            </div>
+                            {ep.videoUrl && (
+                              <p className="text-[10px] text-zinc-600 hover:text-zinc-400 truncate max-w-[180px] hidden md:block font-mono bg-black/30 border border-zinc-850 px-2 py-0.5 rounded transition-colors">
+                                {ep.videoUrl}
+                              </p>
+                            )}
                             <button
                               onClick={() => handleDeleteEpisode(ep.id)}
-                              className="w-7 h-7 flex items-center justify-center rounded-full text-zinc-700 hover:text-red-400 hover:bg-red-400/10 transition-all opacity-0 group-hover:opacity-100 duration-200 flex-shrink-0"
+                              className="w-8 h-8 flex items-center justify-center rounded-full text-zinc-650 hover:text-[#e50914] hover:bg-[#e50914]/15 opacity-0 group-hover:opacity-100 transition-all duration-150 flex-shrink-0"
                             >
-                              <Trash2 size={13} />
+                              <Trash2 size={15} />
                             </button>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-zinc-700 text-sm mb-4">No episodes yet.</p>
+                      <p className="text-zinc-500 text-sm mb-6 bg-zinc-900/40 border border-zinc-850/60 px-5 py-4 rounded text-center">No episodes added to this season yet.</p>
                     )}
 
                     {/* Bulk upload panel */}
@@ -684,9 +715,9 @@ export default function EditSeriesPage() {
           })}
 
           {seasons.length === 0 && (
-            <div className="text-center py-16 border border-dashed border-zinc-800 rounded-2xl text-zinc-600">
-              <p className="text-sm">No seasons yet.</p>
-              <p className="text-xs mt-1">Click "Add Season" to get started.</p>
+            <div className="text-center py-20 border border-dashed border-zinc-800 rounded-md text-zinc-500 bg-[#181818]/50 shadow-inner">
+              <p className="text-sm font-semibold">No seasons yet.</p>
+              <p className="text-xs text-zinc-600 mt-1.5 uppercase font-bold tracking-wider">Click "Add Season" to get started.</p>
             </div>
           )}
         </div>
