@@ -1,22 +1,114 @@
 "use client";
 
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useRouter } from "next/router";
+import axios from "axios";
+import { useSelectionStore } from "@/zustand/states/useSelectStore";
 import useMovie from "@/hooks/useMovie";
 import useMovieList from "@/hooks/useMovieList";
-import { useRouter } from "next/router";
+import { MediaPlayer, MediaProvider, MediaPlayerInstance, useMediaStore } from "@vidstack/react";
+
+// Modern custom SVGs for 30s Rewind/Forward
+const Rewind30Icon = ({ className = "w-10 h-10" }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M12 4a8 8 0 1 0 8 8" />
+    <polyline points="12 1 9 4 12 7" />
+    <text x="12" y="15" textAnchor="middle" fontSize="7" fontWeight="900" fill="currentColor" stroke="none" fontFamily="sans-serif">
+      30
+    </text>
+  </svg>
+);
+
+const Forward30Icon = ({ className = "w-10 h-10" }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M12 4a8 8 0 1 1-8 8" />
+    <polyline points="12 1 15 4 12 7" />
+    <text x="12" y="15" textAnchor="middle" fontSize="7" fontWeight="900" fill="currentColor" stroke="none" fontFamily="sans-serif">
+      30
+    </text>
+  </svg>
+);
+
+// Custom icon overrides removed as we are now using Plyr layout.
+
+// Center Overlay for Rewind 30s, Play/Pause, Forward 30s
+const CenterControlsOverlay = ({ playerRef }: { playerRef: React.RefObject<MediaPlayerInstance | null> }) => {
+  const { paused, controlsVisible } = useMediaStore();
+
+  const handleRewind = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (playerRef.current) {
+      playerRef.current.currentTime = Math.max(0, playerRef.current.currentTime - 30);
+    }
+  };
+
+  const handleForward = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (playerRef.current) {
+      playerRef.current.currentTime = Math.min(
+        playerRef.current.duration || 0,
+        playerRef.current.currentTime + 30
+      );
+    }
+  };
+
+  const handlePlayPause = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (playerRef.current) {
+      if (paused) {
+        playerRef.current.play();
+      } else {
+        playerRef.current.pause();
+      }
+    }
+  };
+
+  return (
+    <div
+      className={`absolute inset-0 flex items-center justify-center gap-10 md:gap-16 z-40 transition-all duration-300 pointer-events-none ${
+        controlsVisible ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"
+      }`}
+    >
+      {/* Rewind Button */}
+      <button
+        onClick={handleRewind}
+        className="pointer-events-auto p-4 rounded-full bg-black/55 hover:bg-black/80 border border-white/10 hover:scale-110 active:scale-95 transition-all text-white hover:text-[#e50914] shadow-lg focus:outline-none"
+        title="Rewind 30s"
+      >
+        <Rewind30Icon className="w-8 h-8 md:w-10 h-10" />
+      </button>
+
+      {/* Play/Pause Button */}
+      <button
+        onClick={handlePlayPause}
+        className="pointer-events-auto p-5 md:p-6 rounded-full bg-black/65 hover:bg-[#e50914]/95 border border-white/20 hover:border-transparent hover:scale-110 active:scale-95 transition-all text-white shadow-xl focus:outline-none flex items-center justify-center"
+        title={paused ? "Play" : "Pause"}
+      >
+        {paused ? (
+          <svg viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 md:w-10 h-10 translate-x-[2px]">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        ) : (
+          <svg viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 md:w-10 h-10">
+            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+          </svg>
+        )}
+      </button>
+
+      {/* Forward Button */}
+      <button
+        onClick={handleForward}
+        className="pointer-events-auto p-4 rounded-full bg-black/55 hover:bg-black/80 border border-white/10 hover:scale-110 active:scale-95 transition-all text-white hover:text-[#e50914] shadow-lg focus:outline-none"
+        title="Forward 30s"
+      >
+        <Forward30Icon className="w-8 h-8 md:w-10 h-10" />
+      </button>
+    </div>
+  );
+};
+import { PlyrLayout, plyrLayoutIcons } from "@vidstack/react/player/layouts/plyr";
 import "@vidstack/react/player/styles/base.css";
-import "@vidstack/react/player/styles/default/theme.css";
-import "@vidstack/react/player/styles/default/layouts/video.css";
-
-import { MediaPlayer, MediaProvider, type MediaPlayerInstance } from "@vidstack/react";
-import { DefaultVideoLayout, defaultLayoutIcons } from "@vidstack/react/player/layouts/default";
-
-import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { AiOutlineArrowLeft } from "react-icons/ai";
-import { FaPlay, FaFilm, FaHome } from "react-icons/fa";
-import { useSelectionStore } from "@/zustand/states/useSelectStore";
-import axios from "axios";
-
-// Countdown ring removed (auto-autoplay countdown timer replaced by ended trigger)
+import "@vidstack/react/player/styles/plyr/theme.css";
 
 const Movie = () => {
   const router = useRouter();
@@ -25,48 +117,48 @@ const Movie = () => {
   const { data: allMovies = [] } = useMovieList();
   const { profile } = useSelectionStore();
 
-  const [activeSource, setActiveSource] = useState<"movie" | "trailer" | null>(null);
-  const [resumeTime, setResumeTime] = useState<number>(0);
-
-  // ── Next movie autoplay state ─────────────────────────────────────────────
-  const [showNextMovie, setShowNextMovie] = useState(false);
-  const nextMovieTriggeredRef = useRef(false);
-
-  const playerRef = useRef<MediaPlayerInstance | null>(null);
-  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const playerRef = useRef<MediaPlayerInstance>(null);
   const hasSeekedRef = useRef(false);
+  const nextTriggeredRef = useRef(false);
+
+  const [activeSource, setActiveSource] = useState<"movie" | "trailer" | null>(null);
+  const [resumeTime, setResumeTime] = useState(0);
+  const [showUpNext, setShowUpNext] = useState(false);
 
   // Pick a random different movie as suggestion
   const suggestedMovie = useMemo(() => {
     if (!allMovies.length || !movieId) return null;
     const others = allMovies.filter((m: any) => m.id !== movieId);
-    if (!others.length) return null;
-    return others[Math.floor(Math.random() * others.length)];
+    return others.length ? others[Math.floor(Math.random() * others.length)] : null;
   }, [allMovies, movieId]);
 
-  // ── Fetch saved progress ──────────────────────────────────────────────────
+  // Reset state when source/movie changes
+  useEffect(() => {
+    hasSeekedRef.current = false;
+    nextTriggeredRef.current = false;
+    setShowUpNext(false);
+  }, [activeSource, movieId]);
+
+  // Fetch saved progress
   useEffect(() => {
     if (!movieId || typeof movieId !== "string") return;
     const profileId = profile?.id;
-    const url = profileId
-      ? `/api/watch-progress?profileId=${profileId}`
-      : `/api/watch-progress`;
-
+    const url = profileId ? `/api/watch-progress?profileId=${profileId}` : `/api/watch-progress`;
     fetch(url)
       .then((r) => r.json())
       .then((items: any[]) => {
         const saved = items?.find((i) => i.movieId === movieId);
-        if (saved && saved.currentTime > 5) setResumeTime(saved.currentTime);
+        if (saved?.currentTime > 5) setResumeTime(saved.currentTime);
       })
       .catch(() => {});
   }, [movieId, profile?.id]);
 
-  // ── Progress saver ────────────────────────────────────────────────────────
+  // Save progress
   const saveProgress = useCallback(async () => {
     if (!playerRef.current || !movieId || !data) return;
-    const currentTime = playerRef.current.currentTime;
-    const duration = playerRef.current.duration;
-    if (!currentTime || !duration || currentTime < 3) return;
+    const ct = playerRef.current.currentTime;
+    const dur = playerRef.current.duration;
+    if (ct < 3 || !dur) return;
     try {
       await axios.post("/api/watch-progress", {
         profileId: profile?.id || null,
@@ -74,166 +166,124 @@ const Movie = () => {
         movieId,
         title: data.title,
         thumbnailUrl: data.thumbnailUrl,
-        currentTime,
-        duration,
+        currentTime: ct,
+        duration: dur,
       });
+      setResumeTime(ct);
     } catch {}
   }, [movieId, data, profile?.id]);
 
-  useEffect(() => {
-    if (activeSource === "movie") {
-      hasSeekedRef.current = false;
-      nextMovieTriggeredRef.current = false;
-      setShowNextMovie(false);
-      progressIntervalRef.current = setInterval(saveProgress, 5000);
-    } else {
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
-      }
-      if (activeSource === null && movieId) saveProgress();
-    }
-    return () => {
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSource]);
-
-  // ── Seek to saved position ────────────────────────────────────────────────
+  // Seek to resume time on canplay
   const handleCanPlay = useCallback(() => {
-    if (hasSeekedRef.current) return;
+    if (hasSeekedRef.current || activeSource !== "movie") return;
     if (resumeTime > 5 && playerRef.current) {
       playerRef.current.currentTime = resumeTime;
       hasSeekedRef.current = true;
     }
-  }, [resumeTime]);
+  }, [resumeTime, activeSource]);
 
-  // ── Time update: trigger "next movie" overlay at last 1 minute ───────────
+  // Show "Up Next" card at last 60 seconds
   const handleTimeUpdate = useCallback(() => {
-    if (!playerRef.current || nextMovieTriggeredRef.current) return;
-    const currentTime = playerRef.current.currentTime;
-    const duration = playerRef.current.duration;
+    if (!playerRef.current || nextTriggeredRef.current || activeSource !== "movie") return;
+    const { currentTime, duration } = playerRef.current;
     if (!duration || duration < 30) return;
-
     const remaining = duration - currentTime;
     if (remaining <= 60 && remaining > 0 && suggestedMovie) {
-      nextMovieTriggeredRef.current = true;
-      setShowNextMovie(true);
+      nextTriggeredRef.current = true;
+      setShowUpNext(true);
     }
-  }, [suggestedMovie]);
+  }, [suggestedMovie, activeSource]);
+
+  // On natural video end → navigate to next movie
+  const handleEnded = useCallback(async () => {
+    await saveProgress();
+    if (activeSource === "movie" && suggestedMovie) {
+      router.push(`/watch/${suggestedMovie.id}`);
+    } else {
+      setActiveSource(null);
+    }
+  }, [activeSource, suggestedMovie, router, saveProgress]);
 
   const exitPlayer = async () => {
     await saveProgress();
-    setShowNextMovie(false);
-    if (document.pictureInPictureElement) {
-      await document.exitPictureInPicture().catch(() => {});
-    }
+    setShowUpNext(false);
     setActiveSource(null);
   };
 
   const handlePlayNextNow = () => {
     if (!suggestedMovie) return;
-    setShowNextMovie(false);
     router.push(`/watch/${suggestedMovie.id}`);
   };
 
-  const handleCancelNext = () => {
-    setShowNextMovie(false);
-  };
-
-  const handleEnded = useCallback(() => {
-    if (activeSource === "movie" && suggestedMovie) {
-      router.push(`/watch/${suggestedMovie.id}`);
-    } else {
-      exitPlayer();
-    }
-  }, [activeSource, suggestedMovie, router]);
-
   if (!data) {
     return (
-      <div className="h-screen w-screen bg-black flex items-center justify-center text-white">
-        <div className="animate-pulse text-zinc-500">Loading...</div>
+      <div className="h-screen w-screen bg-[#141414] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-2 border-[#e50914] border-t-transparent rounded-full animate-spin" />
+          <p className="text-zinc-500 text-sm font-medium tracking-wide">Loading...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen w-full bg-[#141414] text-white font-sans">
-      {/* Top Navigation */}
-      <nav className="fixed top-0 left-0 w-full z-[100] flex items-center gap-4 px-6 py-6 bg-gradient-to-b from-black/90 to-transparent">
-        <AiOutlineArrowLeft
-          onClick={() => (activeSource ? exitPlayer() : router.back())}
-          className="cursor-pointer hover:scale-110 transition-transform"
-          size={30}
-        />
-        <span className="text-lg font-medium tracking-wide">
-          {activeSource ? `Watching: ${data.title}` : "Back"}
-        </span>
-      </nav>
-
-      {/* Media Player */}
-      {activeSource ? (
+    <div className="min-h-screen w-full bg-[#141414] text-white">
+      {/* ── PLAYER ─────────────────────────────────────────────────────────── */}
+      {activeSource && (
         <div className="fixed inset-0 z-50 bg-black">
           <MediaPlayer
             ref={playerRef}
-            autoplay
             title={data.title}
-            src={activeSource === "movie" ? data.videoUrl : data.trailerUrl}
-            className="h-full w-full font-sans"
-            onCanPlay={activeSource === "movie" ? handleCanPlay : undefined}
-            onTimeUpdate={activeSource === "movie" ? handleTimeUpdate : undefined}
+            src={(router.query.videoUrl as string) || (activeSource === "movie" ? data.videoUrl : data.trailerUrl)}
+            autoplay
+            className="w-full h-full"
+            onCanPlay={handleCanPlay}
+            onTimeUpdate={handleTimeUpdate}
             onEnded={handleEnded}
           >
             <MediaProvider />
-            <DefaultVideoLayout
-              icons={defaultLayoutIcons}
-              colorScheme="dark"
-              smallLayoutWhen={({ width }) => width < 576}
-            />
+            <PlyrLayout icons={plyrLayoutIcons} />
+            <CenterControlsOverlay playerRef={playerRef} />
 
-            {/* ── Next Movie Overlay (bottom-right, Netflix-style) inside player to support fullscreen ── */}
-            {showNextMovie && suggestedMovie && (
-              <div 
-                className="absolute bottom-24 right-6 z-[200] flex flex-col items-end gap-3 animate-in slide-in-from-bottom-4 duration-300"
-                style={{ pointerEvents: "auto" }}
+            {/* ── Up Next Card (inside player = visible in fullscreen) ── */}
+            {showUpNext && suggestedMovie && activeSource === "movie" && (
+              <div
+                className="absolute bottom-28 right-5 z-[9999] pointer-events-auto"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="bg-zinc-900/95 backdrop-blur-sm border border-zinc-700 rounded-xl overflow-hidden w-72 shadow-2xl">
+                <div
+                  className="w-[17rem] rounded-xl overflow-hidden shadow-2xl border border-white/10"
+                  style={{ background: "rgba(20,20,20,0.97)", backdropFilter: "blur(12px)" }}
+                >
                   {/* Thumbnail */}
-                  <div className="relative w-full h-28">
-                    <img
-                      src={suggestedMovie.thumbnailUrl}
-                      alt={suggestedMovie.title}
-                      className="w-full h-full object-cover opacity-70"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 to-transparent" />
-                    <div className="absolute bottom-2 left-3 text-[10px] uppercase tracking-widest text-gray-400 font-bold">
-                      Up Next
+                  {suggestedMovie.thumbnailUrl && (
+                    <div className="relative w-full h-[6.5rem]">
+                      <img
+                        src={suggestedMovie.thumbnailUrl}
+                        alt={suggestedMovie.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-[#141414]/40 to-transparent" />
+                      <div className="absolute bottom-2 left-3 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#e50914] shadow-sm" />
+                        <span className="text-[9px] font-black uppercase tracking-[0.15em] text-white/70">Up Next</span>
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="p-4">
-                    <p className="text-white font-semibold text-sm leading-snug line-clamp-2 mb-4">
+                  )}
+                  <div className="px-4 py-3.5">
+                    <p className="text-white font-bold text-[13px] leading-snug line-clamp-1 mb-3">
                       {suggestedMovie.title}
                     </p>
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handlePlayNextNow();
-                        }}
-                        className="flex items-center gap-2 bg-white text-black px-4 py-2.5 rounded-md font-bold text-sm hover:bg-white/90 transition flex-1 justify-center cursor-pointer pointer-events-auto"
-                      >
-                        <FaPlay size={12} />
-                        Play Now
-                      </button>
-                    </div>
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCancelNext();
-                      }}
-                      className="mt-2.5 w-full text-center text-xs text-gray-500 hover:text-gray-300 transition py-1 cursor-pointer pointer-events-auto"
+                      onClick={handlePlayNextNow}
+                      className="w-full flex items-center justify-center gap-2 bg-[#e50914] hover:bg-[#f6121d] text-white py-2 rounded-md font-bold text-[11px] uppercase tracking-wider transition-colors duration-150 cursor-pointer"
+                    >
+                      <svg viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3"><path d="M8 5v14l11-7z" /></svg>
+                      Play Now
+                    </button>
+                    <button
+                      onClick={() => { setShowUpNext(false); nextTriggeredRef.current = true; }}
+                      className="w-full text-center text-[10px] text-zinc-500 hover:text-zinc-300 uppercase tracking-wider font-bold mt-2.5 py-1 transition-colors cursor-pointer"
                     >
                       Dismiss
                     </button>
@@ -241,58 +291,111 @@ const Movie = () => {
                 </div>
               </div>
             )}
+
+            {/* ── Back button overlay ── */}
+            <div className="absolute top-0 left-0 right-0 z-[9999] pointer-events-none">
+              <button
+                onClick={exitPlayer}
+                className="pointer-events-auto m-4 flex items-center gap-2.5 text-white/80 hover:text-white transition-colors text-sm font-medium"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                  <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+                <span>{data.title}</span>
+              </button>
+            </div>
           </MediaPlayer>
         </div>
-      ) : (
-        /* Hero Info Section */
-        <div className="relative h-[80vh] w-full flex items-center px-4 md:px-16 overflow-hidden">
-          <div className="absolute inset-0 z-0">
+      )}
+
+      {/* ── HERO INFO (when not playing) ────────────────────────────────── */}
+      {!activeSource && (
+        <div className="relative min-h-screen flex items-center">
+          {/* Cinematic background */}
+          <div className="absolute inset-0">
             <img
               src={data.thumbnailUrl}
               alt={data.title}
-              className="w-full h-full object-cover opacity-40"
+              className="w-full h-full object-cover"
+              style={{ opacity: 0.5 }}
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#141414] via-[#141414]/60 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#141414] via-[#141414]/70 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-transparent to-[#141414]/30" />
           </div>
 
-          <div className="relative z-10 max-w-2xl mt-20">
-            <h1 className="text-4xl md:text-7xl font-extrabold mb-4 drop-shadow-xl">{data.title}</h1>
+          {/* Top nav */}
+          <nav
+            className="fixed top-0 left-0 w-full z-50 px-8 py-5 flex items-center"
+            style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)" }}
+          >
+            <button
+              onClick={() => router.back()}
+              className="flex items-center gap-2.5 text-white/70 hover:text-white transition-colors group"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 group-hover:text-[#e50914] transition-colors">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+              <span className="text-sm font-medium">Back</span>
+            </button>
+          </nav>
 
+          {/* Content */}
+          <div className="relative z-10 px-8 md:px-20 pt-24 pb-16 max-w-2xl">
+            {/* Genre badge */}
+            {data.genre && (
+              <span className="inline-block text-[10px] font-bold uppercase tracking-[0.25em] text-white/40 border border-white/15 px-3 py-1 rounded-full mb-6">
+                {data.genre}
+              </span>
+            )}
+
+            <h1 className="text-5xl md:text-7xl font-black leading-none tracking-tight mb-4 drop-shadow-2xl">
+              {data.title}
+            </h1>
+
+            {/* Meta */}
+            <div className="flex flex-wrap items-center gap-3 mb-5 text-sm">
+              <span className="text-green-400 font-bold">98% Match</span>
+              {data.duration && (
+                <span className="text-zinc-400">{data.duration}</span>
+              )}
+              <span className="border border-zinc-700/80 text-zinc-400 text-[10px] px-2 py-0.5 rounded-sm font-medium">
+                4K Ultra HD
+              </span>
+            </div>
+
+            {/* Resume badge */}
             {resumeTime > 5 && (
-              <div className="mb-4 flex items-center gap-2 text-sm text-yellow-400 font-medium">
-                <FaPlay size={10} />
+              <div className="flex items-center gap-2 mb-5 text-sm text-yellow-400 font-medium">
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5"><path d="M8 5v14l11-7z" /></svg>
                 <span>Resume from {Math.floor(resumeTime / 60)}m {Math.floor(resumeTime % 60)}s</span>
               </div>
             )}
 
-            <div className="flex items-center gap-4 mb-6 text-sm md:text-lg font-semibold">
-              <span className="text-green-500">98% Match</span>
-              <span className="text-gray-400">{data.duration}</span>
-              <span className="border border-gray-500 px-2 py-0.5 text-[10px] rounded-sm">4K Ultra HD</span>
-            </div>
+            <p className="text-zinc-400 text-base leading-relaxed mb-8 max-w-lg line-clamp-4">
+              {data.description}
+            </p>
 
-            <p className="text-gray-200 text-base md:text-xl leading-snug mb-8 drop-shadow-md">{data.description}</p>
-
-            <div className="flex flex-wrap gap-4">
+            {/* Action buttons */}
+            <div className="flex flex-wrap gap-3">
               <button
                 onClick={() => setActiveSource("movie")}
-                className="flex items-center gap-2 bg-white text-black px-6 md:px-10 py-3 rounded-md font-bold text-lg hover:bg-white/80 transition"
+                className="flex items-center gap-3 bg-white hover:bg-[#e50914] text-black hover:text-white font-bold text-base px-8 py-3.5 rounded-md transition-all duration-150 active:scale-95 shadow-xl cursor-pointer"
               >
-                <FaPlay size={20} />
-                {resumeTime > 5 ? "Resume" : "Play Movie"}
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path d="M8 5v14l11-7z" /></svg>
+                {resumeTime > 5 ? "Resume" : "Play"}
               </button>
 
-              <button
-                onClick={() => setActiveSource("trailer")}
-                className="flex items-center gap-2 bg-zinc-600/70 text-white px-6 md:px-10 py-3 rounded-md font-bold text-lg hover:bg-zinc-600/50 transition backdrop-blur-md"
-              >
-                <FaFilm size={20} /> Trailer
-              </button>
-            </div>
-
-            <div className="mt-8 text-gray-400 text-sm">
-              <span className="text-gray-500">Genre:</span> {data.genre}
+              {data.trailerUrl && (
+                <button
+                  onClick={() => setActiveSource("trailer")}
+                  className="flex items-center gap-3 bg-zinc-600/50 hover:bg-zinc-600/80 text-white font-bold text-base px-8 py-3.5 rounded-md transition-all duration-150 active:scale-95 border border-zinc-600/60 shadow-xl backdrop-blur-sm cursor-pointer"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5">
+                    <polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                  </svg>
+                  Trailer
+                </button>
+              )}
             </div>
           </div>
         </div>

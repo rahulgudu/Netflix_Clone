@@ -14,10 +14,20 @@ html {
   @apply h-full;
 }
 
-:root {
-  /* Override Plyr's default primary color to red */
-  --plyr-color-main: #e50914; /* Standard Netflix Red */
+/* ═══════════════════════════════════════════════════════════════════════════
+   PLYR LAYOUT — Netflix Red Theme Overrides
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root,
+media-player {
+  --plyr-color-main: #e50914 !important;
+  --plyr-video-control-color-hover: #e50914 !important;
+  --plyr-video-control-background-hover: rgba(229, 9, 20, 0.15) !important;
+  --plyr-focus-visible-color: #e50914 !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UTILITIES
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 /* Hide scrollbar for mobile Netflix feel */
 .scrollbar-hide::-webkit-scrollbar {
