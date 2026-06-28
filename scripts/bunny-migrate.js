@@ -45,6 +45,27 @@ function extractVideoId(url) {
   return match ? match[1] : null;
 }
 
+// Helper to probe and find the highest available MP4 resolution
+async function getHighestResolutionUrl(videoId, securityKey, hostname) {
+  const signedUrl = signHlsUrl(videoId, securityKey, hostname);
+  const resolutions = ['play_1080p.mp4', 'play_720p.mp4', 'play_480p.mp4', 'play_360p.mp4', 'play_240p.mp4'];
+  const referer = process.env.NEXTAUTH_URL || 'http://localhost:3000/';
+
+  for (const resName of resolutions) {
+    const url = signedUrl.replace('playlist.m3u8', resName);
+    try {
+      const res = await fetch(url, { method: 'HEAD', headers: { 'Referer': referer } });
+      if (res.status === 200) {
+        console.log(`  -> Selected resolution: ${resName}`);
+        return url;
+      }
+    } catch (err) {
+      // Ignore and try next resolution
+    }
+  }
+  return null;
+}
+
 // Main migration runner
 async function migrate() {
   // NEW Bunny library config (loaded from env)
@@ -80,76 +101,98 @@ async function migrate() {
 
     // Migrate Video URL
     if (movie.videoUrl) {
-      const oldVideoId = extractVideoId(movie.videoUrl);
-      if (oldVideoId) {
-        console.log(`- Fetching video (ID: ${oldVideoId})...`);
-        const mp4Url = signHlsUrl(oldVideoId, OLD_CDN_TOKEN_KEY, OLD_HOSTNAME).replace('playlist.m3u8', 'play_720p.mp4');
-        
-        try {
-          const fetchRes = await fetch(`https://video.bunnycdn.com/library/${NEW_LIBRARY_ID}/videos/fetch`, {
-            method: 'POST',
-            headers: {
-              'AccessKey': NEW_API_KEY,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              url: mp4Url,
-              title: `${movie.title} - Video`
-            })
-          });
-
-          const resData = await fetchRes.json();
-          if (resData.success) {
-            const newVideoId = resData.id || resData.guid || (resData.video ? resData.video.guid : null);
-            if (newVideoId) {
-              const newUrl = signHlsUrl(newVideoId, NEW_CDN_TOKEN_KEY, NEW_HOSTNAME);
-              updatedData.videoUrl = newUrl;
-              console.log(`  -> Successfully queued fetch. New Video ID: ${newVideoId}`);
-            } else {
-              console.log(`  -> Fetch queued, response:`, resData);
-            }
-          } else {
-            console.error(`  -> Failed to queue fetch:`, resData.message || resData);
+      if (movie.videoUrl.includes(NEW_HOSTNAME)) {
+        console.log(`- Video already migrated to new library. Skipping.`);
+      } else {
+        const oldVideoId = extractVideoId(movie.videoUrl);
+        if (oldVideoId) {
+          console.log(`- Fetching video (ID: ${oldVideoId})...`);
+          const mp4Url = await getHighestResolutionUrl(oldVideoId, OLD_CDN_TOKEN_KEY, OLD_HOSTNAME);
+          if (!mp4Url) {
+            console.error(`  -> Failed to find any working MP4 resolution for video ID: ${oldVideoId}`);
+            continue;
           }
-        } catch (err) {
-          console.error(`  -> Error calling Fetch API:`, err.message);
+          
+          try {
+            const fetchRes = await fetch(`https://video.bunnycdn.com/library/${NEW_LIBRARY_ID}/videos/fetch`, {
+              method: 'POST',
+              headers: {
+                'AccessKey': NEW_API_KEY,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                url: mp4Url,
+                title: `${movie.title} - Video`,
+                headers: {
+                  Referer: process.env.NEXTAUTH_URL || 'http://localhost:3000/'
+                }
+              })
+            });
+
+            const resData = await fetchRes.json();
+            if (resData.success) {
+              const newVideoId = resData.id || resData.guid || (resData.video ? resData.video.guid : null);
+              if (newVideoId) {
+                const newUrl = signHlsUrl(newVideoId, NEW_CDN_TOKEN_KEY, NEW_HOSTNAME);
+                updatedData.videoUrl = newUrl;
+                console.log(`  -> Successfully queued fetch. New Video ID: ${newVideoId}`);
+              } else {
+                console.log(`  -> Fetch queued, response:`, resData);
+              }
+            } else {
+              console.error(`  -> Failed to queue fetch:`, resData.message || resData);
+            }
+          } catch (err) {
+            console.error(`  -> Error calling Fetch API:`, err.message);
+          }
         }
       }
     }
 
     // Migrate Trailer URL
     if (movie.trailerUrl) {
-      const oldTrailerId = extractVideoId(movie.trailerUrl);
-      if (oldTrailerId) {
-        console.log(`- Fetching trailer (ID: ${oldTrailerId})...`);
-        const mp4Url = signHlsUrl(oldTrailerId, OLD_CDN_TOKEN_KEY, OLD_HOSTNAME).replace('playlist.m3u8', 'play_720p.mp4');
-
-        try {
-          const fetchRes = await fetch(`https://video.bunnycdn.com/library/${NEW_LIBRARY_ID}/videos/fetch`, {
-            method: 'POST',
-            headers: {
-              'AccessKey': NEW_API_KEY,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              url: mp4Url,
-              title: `${movie.title} - Trailer`
-            })
-          });
-
-          const resData = await fetchRes.json();
-          if (resData.success) {
-            const newTrailerId = resData.id || resData.guid || (resData.video ? resData.video.guid : null);
-            if (newTrailerId) {
-              const newUrl = signHlsUrl(newTrailerId, NEW_CDN_TOKEN_KEY, NEW_HOSTNAME);
-              updatedData.trailerUrl = newUrl;
-              console.log(`  -> Successfully queued trailer fetch. New Video ID: ${newTrailerId}`);
-            }
-          } else {
-            console.error(`  -> Failed to queue trailer fetch:`, resData.message || resData);
+      if (movie.trailerUrl.includes(NEW_HOSTNAME)) {
+        console.log(`- Trailer already migrated to new library. Skipping.`);
+      } else {
+        const oldTrailerId = extractVideoId(movie.trailerUrl);
+        if (oldTrailerId) {
+          console.log(`- Fetching trailer (ID: ${oldTrailerId})...`);
+          const mp4Url = await getHighestResolutionUrl(oldTrailerId, OLD_CDN_TOKEN_KEY, OLD_HOSTNAME);
+          if (!mp4Url) {
+            console.error(`  -> Failed to find any working MP4 resolution for trailer ID: ${oldTrailerId}`);
+            continue;
           }
-        } catch (err) {
-          console.error(`  -> Error calling Fetch API:`, err.message);
+
+          try {
+            const fetchRes = await fetch(`https://video.bunnycdn.com/library/${NEW_LIBRARY_ID}/videos/fetch`, {
+              method: 'POST',
+              headers: {
+                'AccessKey': NEW_API_KEY,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                url: mp4Url,
+                title: `${movie.title} - Trailer`,
+                headers: {
+                  Referer: process.env.NEXTAUTH_URL || 'http://localhost:3000/'
+                }
+              })
+            });
+
+            const resData = await fetchRes.json();
+            if (resData.success) {
+              const newTrailerId = resData.id || resData.guid || (resData.video ? resData.video.guid : null);
+              if (newTrailerId) {
+                const newUrl = signHlsUrl(newTrailerId, NEW_CDN_TOKEN_KEY, NEW_HOSTNAME);
+                updatedData.trailerUrl = newUrl;
+                console.log(`  -> Successfully queued trailer fetch. New Video ID: ${newTrailerId}`);
+              }
+            } else {
+              console.error(`  -> Failed to queue trailer fetch:`, resData.message || resData);
+            }
+          } catch (err) {
+            console.error(`  -> Error calling Fetch API:`, err.message);
+          }
         }
       }
     }
@@ -169,10 +212,18 @@ async function migrate() {
 
   for (const series of seriesList) {
     if (series.trailerUrl) {
+      if (series.trailerUrl.includes(NEW_HOSTNAME)) {
+        console.log(`\nProcessing series trailer: "${series.title}" -> Already migrated. Skipping.`);
+        continue;
+      }
       console.log(`\nProcessing series trailer: "${series.title}"`);
       const oldTrailerId = extractVideoId(series.trailerUrl);
       if (oldTrailerId) {
-        const mp4Url = signHlsUrl(oldTrailerId, OLD_CDN_TOKEN_KEY, OLD_HOSTNAME).replace('playlist.m3u8', 'play_720p.mp4');
+        const mp4Url = await getHighestResolutionUrl(oldTrailerId, OLD_CDN_TOKEN_KEY, OLD_HOSTNAME);
+        if (!mp4Url) {
+          console.error(`  -> Failed to find any working MP4 resolution for series trailer ID: ${oldTrailerId}`);
+          continue;
+        }
         try {
           const fetchRes = await fetch(`https://video.bunnycdn.com/library/${NEW_LIBRARY_ID}/videos/fetch`, {
             method: 'POST',
@@ -182,7 +233,10 @@ async function migrate() {
             },
             body: JSON.stringify({
               url: mp4Url,
-              title: `${series.title} - Trailer`
+              title: `${series.title} - Trailer`,
+              headers: {
+                Referer: process.env.NEXTAUTH_URL || 'http://localhost:3000/'
+              }
             })
           });
 
@@ -196,10 +250,14 @@ async function migrate() {
                 data: { trailerUrl: newUrl }
               });
               console.log(`  -> Successfully updated series trailer. New ID: ${newTrailerId}`);
+            } else {
+              console.error(`  -> Fetch queued, but new ID was not found in response:`, resData);
             }
+          } else {
+            console.error(`  -> Failed to queue series trailer fetch:`, resData.message || resData);
           }
         } catch (err) {
-          console.error(`  -> Error:`, err.message);
+          console.error(`  -> Error calling Fetch API:`, err.message);
         }
       }
     }
@@ -215,10 +273,18 @@ async function migrate() {
     if (ep.videoUrl) {
       const seriesTitle = ep.season?.series?.title || 'Series';
       const epTitle = `${seriesTitle} - S${ep.season?.number || 1}E${ep.number || 1} - ${ep.title}`;
+      if (ep.videoUrl.includes(NEW_HOSTNAME)) {
+        console.log(`\nProcessing episode: "${epTitle}" -> Already migrated. Skipping.`);
+        continue;
+      }
       console.log(`\nProcessing episode: "${epTitle}"`);
       const oldVideoId = extractVideoId(ep.videoUrl);
       if (oldVideoId) {
-        const mp4Url = signHlsUrl(oldVideoId, OLD_CDN_TOKEN_KEY, OLD_HOSTNAME).replace('playlist.m3u8', 'play_720p.mp4');
+        const mp4Url = await getHighestResolutionUrl(oldVideoId, OLD_CDN_TOKEN_KEY, OLD_HOSTNAME);
+        if (!mp4Url) {
+          console.error(`  -> Failed to find any working MP4 resolution for episode ID: ${oldVideoId}`);
+          continue;
+        }
         try {
           const fetchRes = await fetch(`https://video.bunnycdn.com/library/${NEW_LIBRARY_ID}/videos/fetch`, {
             method: 'POST',
@@ -228,7 +294,10 @@ async function migrate() {
             },
             body: JSON.stringify({
               url: mp4Url,
-              title: epTitle
+              title: epTitle,
+              headers: {
+                Referer: process.env.NEXTAUTH_URL || 'http://localhost:3000/'
+              }
             })
           });
 
@@ -242,10 +311,14 @@ async function migrate() {
                 data: { videoUrl: newUrl }
               });
               console.log(`  -> Successfully updated episode. New ID: ${newVideoId}`);
+            } else {
+              console.error(`  -> Fetch queued, but new ID was not found in response:`, resData);
             }
+          } else {
+            console.error(`  -> Failed to queue episode fetch:`, resData.message || resData);
           }
         } catch (err) {
-          console.error(`  -> Error:`, err.message);
+          console.error(`  -> Error calling Fetch API:`, err.message);
         }
       }
     }
