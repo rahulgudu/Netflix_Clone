@@ -11,6 +11,7 @@ import VideoUploader from "@/components/VideoUploader";
 import ImageUploader from "@/components/ImageUploader";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import * as tus from "tus-js-client";
+import BulkUploadTab from "@/components/BulkUploadTab";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type UploadStatus = "idle" | "authorizing" | "uploading" | "done" | "error";
@@ -419,6 +420,7 @@ export default function EditSeriesPage() {
   const [saving, setSaving] = useState(false);
   const [expandedSeasons, setExpandedSeasons] = useState<Set<string>>(new Set());
   const [addingSeason, setAddingSeason] = useState(false);
+  const [activeTab, setActiveTab] = useState<"manual" | "bulk">("manual");
 
   useEffect(() => {
     if (data) {
@@ -468,6 +470,31 @@ export default function EditSeriesPage() {
     } finally {
       setAddingSeason(false);
     }
+  };
+
+  const handleSaveBulk = async (params: {
+    isNewSeason: boolean;
+    seasonId?: string;
+    episodes: { title: string; videoId: string; duration: string }[];
+  }) => {
+    let targetSeasonId = params.seasonId;
+    
+    if (params.isNewSeason) {
+      const res = await axios.post(`/api/admin/series/${seriesId}/season`);
+      targetSeasonId = res.data.id;
+    }
+    
+    if (!targetSeasonId) {
+      throw new Error("Target season ID is missing.");
+    }
+    
+    await axios.post(`/api/admin/series/${seriesId}/bulk-episode`, {
+      seasonId: targetSeasonId,
+      episodes: params.episodes,
+    });
+    
+    mutate();
+    setActiveTab("manual");
   };
 
   const handleDeleteSeason = async (seasonId: string, seasonNumber: number) => {
@@ -613,108 +640,146 @@ export default function EditSeriesPage() {
 
         {/* ── Seasons & Episodes ── */}
         <div className="space-y-4">
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-6 bg-[#e50914] rounded-full" />
-              <h2 className="text-xl font-extrabold tracking-tight text-white uppercase text-sm tracking-wider">Seasons & Episodes</h2>
+          <div className="flex justify-between items-center mb-6 border-b border-zinc-800 pb-4">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-6 bg-[#e50914] rounded-full" />
+                <h2 className="text-xl font-extrabold tracking-tight text-white uppercase text-sm tracking-wider">Seasons & Episodes</h2>
+              </div>
+              <div className="flex gap-2 bg-[#1a1a1a] p-1 rounded-md border border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("manual")}
+                  className={`px-4 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all ${
+                    activeTab === "manual"
+                      ? "bg-[#e50914] text-white"
+                      : "text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  Manage Seasons
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("bulk")}
+                  className={`px-4 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all ${
+                    activeTab === "bulk"
+                      ? "bg-[#e50914] text-white"
+                      : "text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  Bulk Upload
+                </button>
+              </div>
             </div>
-            <button
-              onClick={handleAddSeason}
-              disabled={addingSeason}
-              className="flex items-center gap-2 bg-white text-black px-5 py-2.5 rounded font-bold text-xs uppercase tracking-wider hover:bg-zinc-200 active:scale-95 transition-all duration-150 disabled:opacity-50 shadow-md"
-            >
-              <Plus size={15} /> {addingSeason ? "Adding..." : "Add Season"}
-            </button>
+            {activeTab === "manual" && (
+              <button
+                onClick={handleAddSeason}
+                disabled={addingSeason}
+                className="flex items-center gap-2 bg-white text-black px-5 py-2.5 rounded font-bold text-xs uppercase tracking-wider hover:bg-zinc-200 active:scale-95 transition-all duration-150 disabled:opacity-50 shadow-md"
+              >
+                <Plus size={15} /> {addingSeason ? "Adding..." : "Add Season"}
+              </button>
+            )}
           </div>
 
-          {seasons.map((season: any) => {
-            const isExpanded = expandedSeasons.has(season.id);
+          {activeTab === "manual" ? (
+            seasons.map((season: any) => {
+              const isExpanded = expandedSeasons.has(season.id);
 
-            return (
-              <div key={season.id} className="bg-[#181818] rounded-md border border-zinc-800/80 overflow-hidden shadow-lg">
-                {/* Season header */}
-                <div
-                  className="flex items-center justify-between px-6 py-5 cursor-pointer hover:bg-zinc-800/20 transition-all duration-150"
-                  onClick={() => toggleSeason(season.id)}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center flex-shrink-0 text-[#e50914]">
-                      {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-base text-white tracking-wide">Season {season.number}</h3>
-                      <p className="text-xs text-zinc-500 font-medium mt-0.5">
-                        {season.episodes?.length ?? 0} {season.episodes?.length === 1 ? "episode" : "episodes"}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteSeason(season.id, season.number);
-                    }}
-                    className="w-8 h-8 flex items-center justify-center rounded-full text-zinc-500 hover:text-[#e50914] hover:bg-[#e50914]/15 transition-all duration-150"
+              return (
+                <div key={season.id} className="bg-[#181818] rounded-md border border-zinc-800/80 overflow-hidden shadow-lg">
+                  {/* Season header */}
+                  <div
+                    className="flex items-center justify-between px-6 py-5 cursor-pointer hover:bg-zinc-800/20 transition-all duration-150"
+                    onClick={() => toggleSeason(season.id)}
                   >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-
-                {/* Season body */}
-                {isExpanded && (
-                  <div className="border-t border-zinc-800/80 px-6 pb-8 pt-5">
-                    {/* Existing episodes */}
-                    {season.episodes?.length > 0 ? (
-                      <div className="space-y-2.5 mb-6">
-                        {season.episodes.map((ep: any) => (
-                          <div
-                            key={ep.id}
-                            className="flex items-center gap-4 bg-zinc-900/60 border border-zinc-850/60 rounded-md px-5 py-4 group hover:bg-zinc-900 transition-colors duration-150"
-                          >
-                            <span className="text-xl font-black text-zinc-600 w-8 text-center flex-shrink-0">
-                              {ep.number}
-                            </span>
-                            <div className="w-20 aspect-video rounded bg-zinc-950 border border-zinc-855 flex items-center justify-center text-zinc-650 group-hover:border-[#e50914] transition-all duration-150 flex-shrink-0">
-                              <Upload size={16} className="text-zinc-600 group-hover:text-[#e50914] transition-colors" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-sm text-white truncate group-hover:text-[#e50914] transition-colors">{ep.title}</p>
-                              <p className="text-xs text-zinc-500 mt-1 font-medium">{ep.duration}</p>
-                            </div>
-                            {ep.videoUrl && (
-                              <p className="text-[10px] text-zinc-600 hover:text-zinc-400 truncate max-w-[180px] hidden md:block font-mono bg-black/30 border border-zinc-850 px-2 py-0.5 rounded transition-colors">
-                                {ep.videoUrl}
-                              </p>
-                            )}
-                            <button
-                              onClick={() => handleDeleteEpisode(ep.id)}
-                              className="w-8 h-8 flex items-center justify-center rounded-full text-zinc-650 hover:text-[#e50914] hover:bg-[#e50914]/15 opacity-0 group-hover:opacity-100 transition-all duration-150 flex-shrink-0"
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          </div>
-                        ))}
+                    <div className="flex items-center gap-4">
+                      <div className="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center flex-shrink-0 text-[#e50914]">
+                        {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                       </div>
-                    ) : (
-                      <p className="text-zinc-500 text-sm mb-6 bg-zinc-900/40 border border-zinc-850/60 px-5 py-4 rounded text-center">No episodes added to this season yet.</p>
-                    )}
-
-                    {/* Bulk upload panel */}
-                    {currentUser?.email && (
-                      <BulkEpisodePanel
-                        seasonId={season.id}
-                        seriesId={seriesId as string}
-                        seasonNumber={season.number}
-                        userEmail={currentUser.email}
-                        onSuccess={mutate}
-                      />
-                    )}
+                      <div>
+                        <h3 className="font-bold text-base text-white tracking-wide">Season {season.number}</h3>
+                        <p className="text-xs text-zinc-500 font-medium mt-0.5">
+                          {season.episodes?.length ?? 0} {season.episodes?.length === 1 ? "episode" : "episodes"}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteSeason(season.id, season.number);
+                      }}
+                      className="w-8 h-8 flex items-center justify-center rounded-full text-zinc-500 hover:text-[#e50914] hover:bg-[#e50914]/15 transition-all duration-150"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
-                )}
-              </div>
-            );
-          })}
 
-          {seasons.length === 0 && (
+                  {/* Season body */}
+                  {isExpanded && (
+                    <div className="border-t border-zinc-800/80 px-6 pb-8 pt-5">
+                      {/* Existing episodes */}
+                      {season.episodes?.length > 0 ? (
+                        <div className="space-y-2.5 mb-6">
+                          {season.episodes.map((ep: any) => (
+                            <div
+                              key={ep.id}
+                              className="flex items-center gap-4 bg-zinc-900/60 border border-zinc-850/60 rounded-md px-5 py-4 group hover:bg-zinc-900 transition-colors duration-150"
+                            >
+                              <span className="text-xl font-black text-zinc-600 w-8 text-center flex-shrink-0">
+                                {ep.number}
+                              </span>
+                              <div className="w-20 aspect-video rounded bg-zinc-950 border border-zinc-855 flex items-center justify-center text-zinc-650 group-hover:border-[#e50914] transition-all duration-150 flex-shrink-0">
+                                <Upload size={16} className="text-zinc-600 group-hover:text-[#e50914] transition-colors" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-sm text-white truncate group-hover:text-[#e50914] transition-colors">{ep.title}</p>
+                                <p className="text-xs text-zinc-500 mt-1 font-medium">{ep.duration}</p>
+                              </div>
+                              {ep.videoUrl && (
+                                <p className="text-[10px] text-zinc-600 hover:text-zinc-400 truncate max-w-[180px] hidden md:block font-mono bg-black/30 border border-zinc-850 px-2 py-0.5 rounded transition-colors">
+                                  {ep.videoUrl}
+                                </p>
+                              )}
+                              <button
+                                onClick={() => handleDeleteEpisode(ep.id)}
+                                className="w-8 h-8 flex items-center justify-center rounded-full text-zinc-650 hover:text-[#e50914] hover:bg-[#e50914]/15 opacity-0 group-hover:opacity-100 transition-all duration-150 flex-shrink-0"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-zinc-500 text-sm mb-6 bg-zinc-900/40 border border-zinc-850/60 px-5 py-4 rounded text-center">No episodes added to this season yet.</p>
+                      )}
+
+                      {/* Bulk upload panel */}
+                      {currentUser?.email && (
+                        <BulkEpisodePanel
+                          seasonId={season.id}
+                          seriesId={seriesId as string}
+                          seasonNumber={season.number}
+                          userEmail={currentUser.email}
+                          onSuccess={mutate}
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            currentUser?.email && (
+              <BulkUploadTab
+                existingSeasons={seasons.map((s: any) => ({ id: s.id, number: s.number }))}
+                userEmail={currentUser.email}
+                onSave={handleSaveBulk}
+              />
+            )
+          )}
+
+          {seasons.length === 0 && activeTab === "manual" && (
             <div className="text-center py-20 border border-dashed border-zinc-800 rounded-md text-zinc-500 bg-[#181818]/50 shadow-inner">
               <p className="text-sm font-semibold">No seasons yet.</p>
               <p className="text-xs text-zinc-600 mt-1.5 uppercase font-bold tracking-wider">Click "Add Season" to get started.</p>

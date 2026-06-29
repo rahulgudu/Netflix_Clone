@@ -11,6 +11,7 @@ import useCurrentUser from "@/hooks/useCurrentUser";
 import { useSeriesStore, SeriesEpisode, SeriesSeason, SeriesFormData } from "@/zustand/states/useSeriesStore";
 import VideoUploader from "@/components/VideoUploader";
 import ImageUploader from "@/components/ImageUploader";
+import BulkUploadTab from "@/components/BulkUploadTab";
 
 const emptyEpisode = (): SeriesEpisode => ({
   number: 1,
@@ -47,6 +48,7 @@ export default function AdminSeriesPage() {
   const [seasons, setSeasons] = useState<SeriesSeason[]>([
     { number: 1, episodes: [{ ...emptyEpisode() }] },
   ]);
+  const [activeTab, setActiveTab] = useState<"manual" | "bulk">("manual");
 
   // Hydrate from localStorage on mount
   useEffect(() => {
@@ -97,6 +99,48 @@ export default function AdminSeriesPage() {
       };
       return next;
     });
+  };
+
+  const handleSaveBulk = async (params: {
+    isNewSeason: boolean;
+    seasonNumber?: number;
+    episodes: { title: string; videoId: string; duration: string }[];
+  }) => {
+    if (params.isNewSeason) {
+      const nextNumber = seasons.length + 1;
+      setSeasons((prev) => [
+        ...prev,
+        {
+          number: nextNumber,
+          episodes: params.episodes.map((ep, idx) => ({
+            number: idx + 1,
+            title: ep.title,
+            videoId: ep.videoId,
+            duration: ep.duration,
+          })),
+        },
+      ]);
+    } else if (params.seasonNumber) {
+      setSeasons((prev) => {
+        const next = [...prev];
+        const sIdx = params.seasonNumber! - 1;
+        const startNum = next[sIdx].episodes.length + 1;
+        next[sIdx] = {
+          ...next[sIdx],
+          episodes: [
+            ...next[sIdx].episodes,
+            ...params.episodes.map((ep, idx) => ({
+              number: startNum + idx,
+              title: ep.title,
+              videoId: ep.videoId,
+              duration: ep.duration,
+            })),
+          ],
+        };
+        return next;
+      });
+    }
+    setActiveTab("manual");
   };
 
   // Phase 1: persist to localStorage
@@ -197,58 +241,96 @@ export default function AdminSeriesPage() {
 
           {/* Seasons & Episodes */}
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Seasons & Episodes</h2>
-              <button
-                type="button"
-                onClick={addSeason}
-                className="bg-white text-black px-4 py-1 rounded text-sm font-bold"
-              >
-                Add Season
-              </button>
-            </div>
-
-            {seasons.map((season, sIdx) => (
-              <div key={sIdx} className="bg-[#141414] p-6 rounded-xl border border-gray-800">
-                <h3 className="text-xl font-bold mb-6">Season {season.number}</h3>
-
-                <div className="space-y-8">
-                  {season.episodes.map((episode, eIdx) => (
-                    <div key={eIdx} className="bg-[#1a1a1a] p-6 rounded-lg border border-gray-700">
-                      <p className="text-xs text-gray-500 mb-4 uppercase">Episode {episode.number}</p>
-                      <div className="space-y-4">
-                        <input
-                          placeholder="Episode Title"
-                          value={episode.title}
-                          className="w-full bg-black p-2 rounded text-sm"
-                          onChange={(e) => updateEpisode(sIdx, eIdx, { title: e.target.value })}
-                        />
-                        <input
-                          placeholder="Duration (e.g. 42m)"
-                          value={episode.duration}
-                          className="w-full bg-black p-2 rounded text-sm"
-                          onChange={(e) => updateEpisode(sIdx, eIdx, { duration: e.target.value })}
-                        />
-                        <VideoUploader
-                          onSuccess={(id) => updateEpisode(sIdx, eIdx, { videoId: id })}
-                        />
-                        {episode.videoId && (
-                          <p className="text-[10px] text-blue-500">Video linked: {episode.videoId}</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-
+            <div className="flex items-center justify-between border-b border-gray-800 pb-4">
+              <div className="flex items-center gap-6">
+                <h2 className="text-2xl font-bold">Seasons & Episodes</h2>
+                <div className="flex gap-2 bg-[#1a1a1a] p-1 rounded-md border border-gray-800">
                   <button
                     type="button"
-                    onClick={() => addEpisode(sIdx)}
-                    className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition"
+                    onClick={() => setActiveTab("manual")}
+                    className={`px-4 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all ${
+                      activeTab === "manual"
+                        ? "bg-[#e50914] text-white"
+                        : "text-zinc-400 hover:text-white"
+                    }`}
                   >
-                    <Plus size={16} /> Add Episode
+                    Manual Add
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("bulk")}
+                    className={`px-4 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all ${
+                      activeTab === "bulk"
+                        ? "bg-[#e50914] text-white"
+                        : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    Bulk Upload
                   </button>
                 </div>
               </div>
-            ))}
+              {activeTab === "manual" && (
+                <button
+                  type="button"
+                  onClick={addSeason}
+                  className="bg-white text-black hover:bg-zinc-200 px-4 py-2 rounded text-xs uppercase tracking-wider font-bold"
+                >
+                  Add Season
+                </button>
+              )}
+            </div>
+
+            {activeTab === "manual" ? (
+              seasons.map((season, sIdx) => (
+                <div key={sIdx} className="bg-[#141414] p-6 rounded-xl border border-gray-800">
+                  <h3 className="text-xl font-bold mb-6">Season {season.number}</h3>
+
+                  <div className="space-y-8">
+                    {season.episodes.map((episode, eIdx) => (
+                      <div key={eIdx} className="bg-[#1a1a1a] p-6 rounded-lg border border-gray-700">
+                        <p className="text-xs text-gray-500 mb-4 uppercase">Episode {episode.number}</p>
+                        <div className="space-y-4">
+                          <input
+                            placeholder="Episode Title"
+                            value={episode.title}
+                            className="w-full bg-black p-2 rounded text-sm"
+                            onChange={(e) => updateEpisode(sIdx, eIdx, { title: e.target.value })}
+                          />
+                          <input
+                            placeholder="Duration (e.g. 42m)"
+                            value={episode.duration}
+                            className="w-full bg-black p-2 rounded text-sm"
+                            onChange={(e) => updateEpisode(sIdx, eIdx, { duration: e.target.value })}
+                          />
+                          <VideoUploader
+                            onSuccess={(id) => updateEpisode(sIdx, eIdx, { videoId: id })}
+                          />
+                          {episode.videoId && (
+                            <p className="text-[10px] text-blue-500">Video linked: {episode.videoId}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+
+                    <button
+                      type="button"
+                      onClick={() => addEpisode(sIdx)}
+                      className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition"
+                    >
+                      <Plus size={16} /> Add Episode
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              currentUser?.email && (
+                <BulkUploadTab
+                  existingSeasons={seasons.map((s) => ({ number: s.number }))}
+                  userEmail={currentUser.email}
+                  onSave={handleSaveBulk}
+                />
+              )
+            )}
           </div>
 
           {/* Action Buttons */}
