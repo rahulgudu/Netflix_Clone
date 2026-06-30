@@ -11,11 +11,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Returns all in-progress items (percentage < 95) sorted by most recent
     // ─────────────────────────────────────────────────────────────
     if (req.method === "GET") {
-      const { profileId } = req.query;
+      const { profileId, all } = req.query;
+      const getAll = all === "true";
 
       const where = profileId
-        ? { profileId: profileId as string, percentage: { lt: 95 } }
-        : { userId: currentUser.id, percentage: { lt: 95 } };
+        ? {
+            profileId: profileId as string,
+            ...(getAll ? {} : { percentage: { lt: 99.5 } }),
+          }
+        : {
+            userId: currentUser.id,
+            ...(getAll ? {} : { percentage: { lt: 99.5 } }),
+          };
 
       const progress = await prismadb.watchProgress.findMany({
         where,
@@ -63,35 +70,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(200).json({ reset: true });
       }
 
-      // If finished (>= 95%), delete the record (remove from Continue Watching)
-      if (percentage >= 95) {
-        const deleteWhere = profileId
-          ? movieId
-            ? { profileId_movieId: { profileId, movieId } }
-            : undefined
-          : movieId
-            ? { userId_movieId: { userId: currentUser.id, movieId } }
-            : undefined;
 
-        // For episodes, delete by episodeId unique constraint
-        if (episodeId) {
-          await prismadb.watchProgress.deleteMany({
-            where: profileId
-              ? { profileId, episodeId }
-              : { userId: currentUser.id, episodeId },
-          });
-          return res.status(200).json({ removed: true });
-        }
-
-        if (deleteWhere) {
-          try {
-            await prismadb.watchProgress.delete({ where: deleteWhere as any });
-          } catch {
-            // Record might not exist, ignore
-          }
-        }
-        return res.status(200).json({ removed: true });
-      }
 
       // Upsert based on profileId or userId + content identifier
       const baseData = {

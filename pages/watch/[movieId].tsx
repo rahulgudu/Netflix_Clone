@@ -143,12 +143,12 @@ const Movie = () => {
   useEffect(() => {
     if (!movieId || typeof movieId !== "string") return;
     const profileId = profile?.id;
-    const url = profileId ? `/api/watch-progress?profileId=${profileId}` : `/api/watch-progress`;
+    const url = profileId ? `/api/watch-progress?profileId=${profileId}&all=true` : `/api/watch-progress?all=true`;
     fetch(url)
       .then((r) => r.json())
       .then((items: any[]) => {
         const saved = items?.find((i) => i.movieId === movieId);
-        if (saved?.currentTime > 5) setResumeTime(saved.currentTime);
+        if (saved?.currentTime > 5 && saved?.percentage < 99.5) setResumeTime(saved.currentTime);
       })
       .catch(() => {});
   }, [movieId, profile?.id]);
@@ -172,6 +172,62 @@ const Movie = () => {
       setResumeTime(ct);
     } catch {}
   }, [movieId, data, profile?.id]);
+
+  // Periodic auto-save progress
+  useEffect(() => {
+    if (!activeSource || activeSource !== "movie") return;
+    const interval = setInterval(() => {
+      saveProgress();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [activeSource, saveProgress]);
+
+  // Save progress on tab close/backgrounding using keepalive fetch
+  useEffect(() => {
+    const triggerSave = () => {
+      if (!playerRef.current || !movieId || !data || activeSource !== "movie") return;
+      const ct = playerRef.current.currentTime;
+      const dur = playerRef.current.duration;
+      if (ct < 3 || !dur) return;
+
+      const body = {
+        profileId: profile?.id || null,
+        contentType: "movie",
+        movieId,
+        title: data.title,
+        thumbnailUrl: data.thumbnailUrl,
+        currentTime: ct,
+        duration: dur,
+      };
+
+      fetch("/api/watch-progress", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+        keepalive: true,
+      }).catch(() => {});
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        triggerSave();
+      }
+    };
+
+    const handlePageHide = () => {
+      triggerSave();
+    };
+
+    window.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", handlePageHide);
+
+    return () => {
+      window.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", handlePageHide);
+    };
+  }, [activeSource, movieId, data, profile?.id]);
 
   // Seek to resume time on canplay
   const handleCanPlay = useCallback(() => {

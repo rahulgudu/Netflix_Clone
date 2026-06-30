@@ -122,6 +122,7 @@ interface PlayTarget {
   seasonId: string;
   episodeLabel: string;
   savedTime?: number;
+  savedPercentage?: number;
 }
 
 export default function SeriesPage() {
@@ -170,8 +171,8 @@ export default function SeriesPage() {
     if (!seriesId) return;
     const profileId = profile?.id;
     const url = profileId
-      ? `/api/watch-progress?profileId=${profileId}`
-      : `/api/watch-progress`;
+      ? `/api/watch-progress?profileId=${profileId}&all=true`
+      : `/api/watch-progress?all=true`;
     fetch(url)
       .then((r) => r.json())
       .then((items: any[]) => {
@@ -206,6 +207,7 @@ export default function SeriesPage() {
         seasonId: season.id,
         episodeLabel: label,
         savedTime: savedTimes[ep.id]?.currentTime || 0,
+        savedPercentage: savedTimes[ep.id]?.percentage || 0,
       };
     }
 
@@ -222,6 +224,7 @@ export default function SeriesPage() {
           seasonId: nextSeason.id,
           episodeLabel: label,
           savedTime: savedTimes[ep.id]?.currentTime || 0,
+          savedPercentage: savedTimes[ep.id]?.percentage || 0,
         };
       }
     }
@@ -264,14 +267,75 @@ export default function SeriesPage() {
     } catch {}
   }, [playing, data, profile?.id, seriesId]);
 
+  // Periodic auto-save progress
+  useEffect(() => {
+    if (!playing) return;
+    const interval = setInterval(() => {
+      saveProgress();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [playing, saveProgress]);
+
+  // Save progress on tab close/backgrounding using keepalive fetch
+  useEffect(() => {
+    const triggerSave = () => {
+      if (!playerRef.current || !playing || !data) return;
+      const currentTime = playerRef.current.currentTime;
+      const duration = playerRef.current.duration;
+      if (currentTime < 3 || !duration) return;
+
+      const body = {
+        profileId: profile?.id || null,
+        contentType: "episode",
+        episodeId: playing.episodeId,
+        seriesId,
+        seasonId: playing.seasonId,
+        title: data.title,
+        thumbnailUrl: data.thumbnailUrl,
+        episodeLabel: playing.episodeLabel,
+        currentTime,
+        duration,
+      };
+
+      fetch("/api/watch-progress", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+        keepalive: true,
+      }).catch(() => {});
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        triggerSave();
+      }
+    };
+
+    const handlePageHide = () => {
+      triggerSave();
+    };
+
+    window.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", handlePageHide);
+
+    return () => {
+      window.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", handlePageHide);
+    };
+  }, [playing, data, profile?.id, seriesId]);
+
   // Seek to saved position on canplay
   const handleCanPlay = useCallback(() => {
     if (hasSeekedRef.current) return;
     if (playing?.savedTime && playing.savedTime > 5 && playerRef.current) {
-      playerRef.current.currentTime = playing.savedTime;
+      if ((playing.savedPercentage || 0) < 99.5) {
+        playerRef.current.currentTime = playing.savedTime;
+      }
       hasSeekedRef.current = true;
     }
-  }, [playing?.savedTime]);
+  }, [playing?.savedTime, playing?.savedPercentage]);
 
   // Time update — show "Next Episode" card at last 1 min
   const handleTimeUpdate = useCallback(() => {
@@ -321,7 +385,15 @@ export default function SeriesPage() {
     videoUrl: string, title: string, episodeId: string,
     seasonId: string, episodeLabel: string
   ) => {
-    setPlaying({ videoUrl, title, episodeId, seasonId, episodeLabel, savedTime: savedTimes[episodeId]?.currentTime || 0 });
+    setPlaying({
+      videoUrl,
+      title,
+      episodeId,
+      seasonId,
+      episodeLabel,
+      savedTime: savedTimes[episodeId]?.currentTime || 0,
+      savedPercentage: savedTimes[episodeId]?.percentage || 0,
+    });
   };
 
   if (!data) {
@@ -521,7 +593,7 @@ export default function SeriesPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-gray-400">Episode {episode.number}</p>
                         <p className="font-semibold truncate">{episode.title}</p>
-                        {hasSaved && (
+                        {hasSaved && progress.percentage < 99.5 && (
                           <p className="text-xs text-yellow-400 mt-0.5">
                             Resume from {Math.floor(progress.currentTime / 60)}m {Math.floor(progress.currentTime % 60)}s
                           </p>
