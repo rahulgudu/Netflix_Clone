@@ -1,0 +1,173 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String     @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  image          String?
+  email          String?    @unique
+  emailVerified  DateTime?
+  hashedPassword String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  sessions       Session[]
+  accounts       Account[]
+  favouriteIds   String[]   @db.ObjectId
+  profiles       Profiles[]
+  role           String     @default("user")
+}
+
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String  @db.ObjectId
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.String
+  access_token      String? @db.String
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.String
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Profiles {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  avatar       String
+  favouriteIds String[] @db.ObjectId
+  userId       String   @db.ObjectId
+  User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionToken String   @unique
+  userId       String   @db.ObjectId
+  expires      DateTime
+  User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Region {
+  id     String  @id @default(auto()) @map("_id") @db.ObjectId
+  region String
+  movies Movie[]
+  series Series[]
+}
+
+model Movie {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  title        String
+  description  String
+  videoUrl     String
+  thumbnailUrl String
+  trailerUrl   String?
+  genre        String
+  duration     String
+  regionId     String?  @db.ObjectId
+  region       Region?  @relation(fields: [regionId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+
+model Series {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  title        String
+  description  String
+  trailerUrl   String?
+  thumbnailUrl String?
+  genre        String?
+  cast          String[]
+  rating       String?  
+  releaseYear  Int?
+  
+  // Relationships
+  seasons      Season[]
+  regionId     String?  @db.ObjectId
+  region       Region?  @relation(fields: [regionId], references: [id])
+
+  lastModifiedNote String?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Season {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  number       Int?       
+  title        String?   
+  duration     String?
+  thumbnailUrl String?   
+  
+  seriesId     String    @db.ObjectId
+  series       Series    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  episodes     Episode[]
+}
+
+model Episode {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  number   Int?
+  title    String
+  videoUrl String
+  duration String
+
+  seasonId      String          @db.ObjectId
+  season        Season          @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  watchProgress WatchProgress[]
+}
+
+model WatchProgress {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+
+  // Who is watching — one of these will be set
+  profileId   String?  @db.ObjectId
+  userId      String?  @db.ObjectId
+
+  // What is being watched
+  contentType String            // "movie" | "episode"
+  movieId     String?  @db.ObjectId
+  episodeId   String?  @db.ObjectId
+
+  // Series context (to resume the correct episode on series page)
+  seriesId    String?  @db.ObjectId
+  seasonId    String?  @db.ObjectId
+
+  // Snapshot info stored for display (avoids joins on GET)
+  title           String?
+  thumbnailUrl    String?
+  episodeLabel    String?   // e.g. "S1:E3 - Episode Title"
+
+  // Progress
+  currentTime Float    @default(0)   // seconds elapsed
+  duration    Float    @default(0)   // total duration in seconds
+  percentage  Float    @default(0)   // 0–100
+
+  episode     Episode? @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  @@unique([profileId, movieId])
+  @@unique([userId, movieId])
+}

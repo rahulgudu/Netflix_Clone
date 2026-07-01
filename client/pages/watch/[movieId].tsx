@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/router";
 import axios from "axios";
-import { useSelectionStore } from "@/zustand/states/useSelectStore";
+import { useSelectionStore } from "@/zustand/useSelectStore";
 import useMovie from "@/hooks/useMovie";
 import useMovieList from "@/hooks/useMovieList";
 import { MediaPlayer, MediaProvider, MediaPlayerInstance, useMediaStore } from "@vidstack/react";

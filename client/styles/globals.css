@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-zinc-900 h-full overflow-x-hidden;
+}
+
+#__next {
+  @apply h-full;
+}
+
+html {
+  @apply h-full;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PLYR LAYOUT — Netflix Red Theme Overrides
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root,
+media-player {
+  --plyr-color-main: #e50914 !important;
+  --plyr-video-control-color-hover: #e50914 !important;
+  --plyr-video-control-background-hover: rgba(229, 9, 20, 0.15) !important;
+  --plyr-focus-visible-color: #e50914 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UTILITIES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Hide scrollbar for mobile Netflix feel */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

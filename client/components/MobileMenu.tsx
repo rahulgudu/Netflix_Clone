@@ -10,13 +10,6 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ visible }) => {
   const { data: currentUser } = useCurrentUser();
   return (
     <div className="bg-black w-56 absolute top-8 left-0 py-5 flex flex-col border-2 border-gray-900 z-50">
-      {currentUser?.role === "admin" && (
-        <div className="px-3 mb-4">
-          <Link href={"/admin"} className="block bg-red-600 py-2 rounded-md text-center text-white font-semibold hover:bg-red-700 transition">
-            Admin
-          </Link>
-        </div>
-      )}
       <div className="flex flex-col gap-4">
         <Link href="/" className="text-white px-3 text-center hover:underline block">
           Home

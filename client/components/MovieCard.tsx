@@ -4,7 +4,7 @@ import FavouriteBtn from "./FavouriteBtn";
 import { useRouter } from "next/router";
 import useModelInfo from "@/hooks/useModelInfo";
 import { BiChevronDown } from "react-icons/bi";
-import { useSelectionStore } from "@/zustand/states/useSelectStore";
+import { useSelectionStore } from "@/zustand/useSelectStore";
 interface MovieCardProps {
   data: Record<string, any>;
 }

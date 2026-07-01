@@ -1,7 +1,7 @@
 "use client";
 
 import useCurrentUser from "@/hooks/useCurrentUser";
-import { useSelectionStore } from "@/zustand/states/useSelectStore";
+import { useSelectionStore } from "@/zustand/useSelectStore";
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/router";
 import React from "react";

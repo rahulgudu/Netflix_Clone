@@ -1,6 +1,6 @@
 "use client";
 
-import { useSelectionStore } from "@/zustand/states/useSelectStore";
+import { useSelectionStore } from "@/zustand/useSelectStore";
 import Image from "next/image";
 import { useRouter } from "next/router";
 import { AiOutlineDelete } from "react-icons/ai";

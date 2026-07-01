@@ -3,7 +3,7 @@ import NavbarItems from "./NavbarItems";
 import MobileMenu from "./MobileMenu";
 import { useCallback, useEffect, useState } from "react";
 import AccountMenu from "./AccountMenu";
-import { useSelectionStore } from "@/zustand/states/useSelectStore";
+import { useSelectionStore } from "@/zustand/useSelectStore";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import Link from "next/link";
 import CategoriesDropdown from "./CategoriesDropdown";
@@ -81,15 +81,6 @@ const Navbar = () => {
 
         {/* RIGHT SECTION */}
         <div className="flex items-center gap-5 ml-auto">
-          {currentUser?.role === "admin" && (
-            <Link
-              href="/admin"
-              className="bg-red-600 py-1 px-3 rounded-md text-sm hidden md:block"
-            >
-              Admin
-            </Link>
-          )}
-
           <BsSearch className="text-gray-200 hover:text-gray-300 cursor-pointer text-lg" />
           <BsBell className="text-gray-200 hover:text-gray-300 cursor-pointer text-lg" />
 

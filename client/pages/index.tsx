@@ -11,15 +11,15 @@ import useSeriesList from "@/hooks/useSeriesList";
 import SeriesList from "@/components/SeriesList";
 import ContinueWatchingRow from "@/components/ContinueWatchingRow";
 import useWatchProgress from "@/hooks/useWatchProgress";
-import { useSelectionStore } from "@/zustand/states/useSelectStore";
-import { NextPageContext } from "next";
-import { getSession } from "next-auth/react";
+import { useSelectionStore } from "@/zustand/useSelectStore";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "./api/auth/[...nextauth]";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 import SkelletonWrapper from "@/components/SkelletonWrapper";
 
-export async function getServerSideProps(context: NextPageContext) {
-  const session = await getSession(context);
+export async function getServerSideProps(context: any) {
+  const session = await getServerSession(context.req, context.res, authOptions);
   if (!session) {
     return {
       redirect: {
