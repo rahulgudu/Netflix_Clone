@@ -1,4 +1,5 @@
 "use client";
+import React, { useEffect } from "react";
 import Billboard from "@/components/Billboard";
 import InfoModel from "@/components/InfoModel";
 import MovieList from "@/components/MovieList";
@@ -15,8 +16,8 @@ import { useSelectionStore } from "@/zustand/useSelectStore";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "./api/auth/[...nextauth]";
 import { useRouter } from "next/router";
-import { useEffect } from "react";
 import SkelletonWrapper from "@/components/SkelletonWrapper";
+import useRegions from "@/hooks/useRegions";
 
 export async function getServerSideProps(context: any) {
   const session = await getServerSession(context.req, context.res, authOptions);
@@ -38,6 +39,7 @@ export default function Home() {
   const { data: movies = [], isLoading } = useMovieList();
   const { data: seriesList = [], isLoading: isSeriesLoading } = useSeriesList();
   const { profile } = useSelectionStore();
+  const { data: regions = [], isLoading: isRegionsLoading } = useRegions();
 
   const { data: favMovies, isLoading: isFavLoading } = useFavourites({
     profileId: profile?.id,
@@ -88,6 +90,18 @@ export default function Home() {
         ) : (
           <SeriesList title="Series" data={seriesList} />
         )}
+
+        {/* Region Content */}
+        {!isRegionsLoading && regions?.map((region: any) => (
+          <React.Fragment key={region.id}>
+            {region.movies && region.movies.length > 0 && (
+              <MovieList title={`${region.region} Movies`} data={region.movies} />
+            )}
+            {region.series && region.series.length > 0 && (
+              <SeriesList title={`${region.region} Series`} data={region.series} />
+            )}
+          </React.Fragment>
+        ))}
       </div>
     </>
   );

@@ -15,6 +15,18 @@ export default async function handler(
         // const currentUser = await serverAuth(req, res);
 
         const allregions = await prismadb.region.findMany({
+          include: {
+            movies: true,
+            series: {
+              include: {
+                seasons: {
+                  include: {
+                    episodes: true,
+                  },
+                },
+              },
+            },
+          },
         });
         return res.status(200).json(allregions);
     } catch (error) {
