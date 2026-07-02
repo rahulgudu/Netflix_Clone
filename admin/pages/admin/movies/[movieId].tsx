@@ -5,6 +5,7 @@ import { useRouter } from "next/router";
 import axios from "axios";
 import { AiOutlineArrowLeft } from "react-icons/ai";
 import { Save, Loader2, Film, Image } from "lucide-react";
+import { useToast } from "@/components/Toast";
 import useMovie from "@/hooks/useMovie";
 import useGetRegions from "@/hooks/useRegions";
 import VideoUploader from "@/components/VideoUploader";
@@ -28,6 +29,7 @@ export default function EditMoviePage() {
   });
 
   const [saving, setSaving] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     if (movieData) {
@@ -50,11 +52,11 @@ export default function EditMoviePage() {
     try {
       await axios.put(`/api/admin/movie/${movieId}`, form);
       mutate();
-      alert("Movie information updated successfully!");
+      toast.success("Movie updated successfully!");
       router.push("/admin/movies");
     } catch (err) {
       console.error(err);
-      alert("Failed to update movie.");
+      toast.error("Failed to update movie. Please try again.");
     } finally {
       setSaving(false);
     }

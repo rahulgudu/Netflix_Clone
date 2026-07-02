@@ -1,10 +1,12 @@
 "use client";
 
 import { useRouter } from "next/router";
-import { Film, MapPin, List, Tv, PlaySquare } from "lucide-react";
+import { Film, MapPin, List, Tv, PlaySquare, LogOut } from "lucide-react";
+import { signOut, useSession } from "next-auth/react";
 
 export default function AdminDashboard() {
   const router = useRouter();
+  const { data: session } = useSession();
 
   const cards = [
     {
@@ -41,15 +43,47 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#141414] text-white p-10">
-      {/* Header */}
-      <div className="max-w-9xl mx-auto">
-        <h1 
-          className="text-5xl font-extrabold mb-4 cursor-pointer text-[#E50914] tracking-tighter" 
-          onClick={() => router.push("/")}
-        >
-          NETFLIX <span className="text-white font-light text-3xl ml-2">Admin</span>
-        </h1>
-        <p className="text-zinc-400 mb-12 text-lg">Content Management System</p>
+        {/* Header */}
+        <div className="flex items-start justify-between mb-12">
+          <div>
+            <h1
+              className="text-5xl font-extrabold mb-1 cursor-pointer text-[#E50914] tracking-tighter"
+              onClick={() => router.push("/")}
+            >
+              NETFLIX <span className="text-white font-light text-3xl ml-2">Admin</span>
+            </h1>
+            <p className="text-zinc-400 text-lg">Content Management System</p>
+          </div>
+
+          {/* Logout */}
+          <div className="flex flex-col items-end gap-2 pt-1">
+            {session?.user?.email && (
+              <span className="text-zinc-500 text-xs truncate max-w-[200px]">
+                {session.user.email}
+              </span>
+            )}
+            <button
+              onClick={() => signOut({ callbackUrl: "/auth" })}
+              className="group flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-zinc-400 transition-all duration-200 hover:text-white"
+              style={{
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = "rgba(229,9,20,0.12)";
+                (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(229,9,20,0.4)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.04)";
+                (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.08)";
+              }}
+            >
+              <LogOut size={16} className="transition-transform group-hover:-translate-x-0.5" />
+              Sign Out
+            </button>
+          </div>
+        </div>
+
 
         {/* Dashboard Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -78,7 +112,6 @@ export default function AdminDashboard() {
             </div>
           ))}
         </div>
-      </div>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useRouter } from "next/router";
 import axios from "axios";
 import { AiOutlineArrowLeft } from "react-icons/ai";
 import { Trash2, Pencil } from "lucide-react";
+import { useToast } from "@/components/Toast";
 import useSeriesList from "@/hooks/useSeriesList";
 import useCurrentUser from "@/hooks/useCurrentUser";
 
@@ -28,6 +29,7 @@ export default function ManageSeriesPage() {
   const { data: currentUser } = useCurrentUser();
   const { data: seriesList, isLoading, mutate } = useSeriesList();
   const [deleting, setDeleting] = useState<string | null>(null);
+  const toast = useToast();
 
   const handleDelete = async (seriesId: string, title: string) => {
     if (!confirm(`Delete "${title}" and all its seasons/episodes? This cannot be undone.`)) return;
@@ -38,7 +40,7 @@ export default function ManageSeriesPage() {
       mutate();
     } catch (err) {
       console.error(err);
-      alert("Failed to delete series.");
+      toast.error("Failed to delete series. Please try again.");
     } finally {
       setDeleting(null);
     }

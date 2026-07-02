@@ -12,6 +12,7 @@ import ImageUploader from "@/components/ImageUploader";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import * as tus from "tus-js-client";
 import BulkUploadTab from "@/components/BulkUploadTab";
+import { useToast } from "@/components/Toast";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type UploadStatus = "idle" | "authorizing" | "uploading" | "done" | "error";
@@ -421,6 +422,7 @@ export default function EditSeriesPage() {
   const [expandedSeasons, setExpandedSeasons] = useState<Set<string>>(new Set());
   const [addingSeason, setAddingSeason] = useState(false);
   const [activeTab, setActiveTab] = useState<"manual" | "bulk">("manual");
+  const toast = useToast();
 
   useEffect(() => {
     if (data) {
@@ -451,10 +453,10 @@ export default function EditSeriesPage() {
     try {
       await axios.put(`/api/admin/series/${seriesId}`, form);
       mutate();
-      alert("Series info updated!");
+      toast.success("Series info updated successfully!");
     } catch (err) {
       console.error(err);
-      alert("Failed to update.");
+      toast.error("Failed to update series info.");
     } finally {
       setSaving(false);
     }
@@ -466,7 +468,7 @@ export default function EditSeriesPage() {
       await axios.post(`/api/admin/series/${seriesId}/season`);
       mutate();
     } catch (err) {
-      alert("Failed to add season.");
+      toast.error("Failed to add season. Please try again.");
     } finally {
       setAddingSeason(false);
     }
@@ -503,7 +505,7 @@ export default function EditSeriesPage() {
       await axios.delete(`/api/admin/series/${seriesId}/season`, { data: { seasonId } });
       mutate();
     } catch {
-      alert("Failed to delete season.");
+      toast.error("Failed to delete season. Please try again.");
     }
   };
 
@@ -513,7 +515,7 @@ export default function EditSeriesPage() {
       await axios.delete(`/api/admin/series/${seriesId}/episode`, { data: { episodeId } });
       mutate();
     } catch {
-      alert("Failed to delete episode.");
+      toast.error("Failed to delete episode. Please try again.");
     }
   };
 

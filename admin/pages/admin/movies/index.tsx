@@ -5,6 +5,7 @@ import { useRouter } from "next/router";
 import axios from "axios";
 import { AiOutlineArrowLeft } from "react-icons/ai";
 import { Trash2, Pencil, Search, Film, Clock, Tag } from "lucide-react";
+import { useToast } from "@/components/Toast";
 import useMovieList from "@/hooks/useMovieList";
 import useCurrentUser from "@/hooks/useCurrentUser";
 
@@ -24,6 +25,7 @@ export default function ManageMoviesPage() {
   const { data: movieList, isLoading, mutate } = useMovieList();
   const [deleting, setDeleting] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const toast = useToast();
 
   const handleDelete = async (movieId: string, title: string) => {
     if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
@@ -34,7 +36,7 @@ export default function ManageMoviesPage() {
       mutate();
     } catch (err) {
       console.error(err);
-      alert("Failed to delete movie.");
+      toast.error("Failed to delete movie. Please try again.");
     } finally {
       setDeleting(null);
     }

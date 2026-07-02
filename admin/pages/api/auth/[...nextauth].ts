@@ -67,6 +67,8 @@ export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prismadb),
   session: {
     strategy: "jwt",
+    maxAge: 24 * 60 * 60, // 1 day
+    updateAge: 24 * 60 * 60, // refresh at most once per day
   },
   jwt: {
     secret: process.env.NEXTAUTH_JWT_SECRET,
