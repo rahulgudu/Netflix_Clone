@@ -51,10 +51,18 @@ const Navbar = () => {
 
           {/* Desktop Menu */}
           <div className="hidden lg:flex items-center gap-7">
-            <NavbarItems label="Home" />
-            <NavbarItems label="Series" />
-            <NavbarItems label="Movies" />
-            <NavbarItems label="My List" />
+            <Link href="/">
+              <NavbarItems label="Home" />
+            </Link>
+            <Link href="/series">
+              <NavbarItems label="Series" />
+            </Link>
+            <Link href="/movies">
+              <NavbarItems label="Movies" />
+            </Link>
+            <Link href="/my-list">
+              <NavbarItems label="My List" />
+            </Link>
 
             <div className="relative group">
               <NavbarItems label="Categories" />
